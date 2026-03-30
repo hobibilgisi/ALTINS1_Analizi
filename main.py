@@ -255,6 +255,20 @@ if has_gldtr_hist:
     if "Close" in gldtr_hist.columns and not gldtr_hist["Close"].dropna().empty:
         gldtr_hist_series = gldtr_hist["Close"]
 
+# ── Anlık veriyle tarihsel son günü eşitle ────────────────────
+# Üst paneldeki anlık makas (truncgil gram altın + mynet anlık ALTINS1) ile
+# grafikteki tarihsel makas (yfinance hesaplama + mynet tarihsel Close) farklı
+# kaynaklar kullandığı için tutarsız olabiliyor. Bugünün değerini anlık veriyle güncelle.
+_today = pd.Timestamp(datetime.now().date())
+_live_gram = prices.get("gram_altin_tl")
+_live_s1 = prices.get("altins1_fiyat")
+if gram_gold_hist_series is not None and _live_gram:
+    gram_gold_hist_series[_today] = _live_gram
+    gram_gold_hist_series = gram_gold_hist_series.sort_index()
+if altins1_hist_series is not None and _live_s1:
+    altins1_hist_series[_today] = _live_s1
+    altins1_hist_series = altins1_hist_series.sort_index()
+
 # Tarihsel makas hesabı (eşikler için)
 spread_hist = None
 if altins1_hist_series is not None and gram_gold_hist_series is not None:

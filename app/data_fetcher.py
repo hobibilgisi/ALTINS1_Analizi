@@ -112,31 +112,58 @@ def fetch_altins1_mynet() -> Tuple[Optional[float], Optional[pd.DataFrame]]:
 
 # ── Truncgil API (Anlık Türk piyasası verileri) ───────────────
 
+def _repair_truncated_json(text: str) -> str:
+    """Kesilmiş (truncated) JSON yanıtını kapatılmamış parantezleri tamamlayarak onarır."""
+    # Son tamamlanmamış key-value çiftini kes
+    # Örn: ..."Change":3.9  → son tamamlanmamış değeri bul ve kes
+    last_brace = text.rfind("}")
+    if last_brace == -1:
+        return text
+    # Son kapanan }'den sonrasını kontrol et
+    after = text[last_brace + 1:].strip()
+    if after:
+        # Son }'den sonra eksik veri var — onu kes
+        text = text[:last_brace + 1]
+    # Açık/kapalı parantez sayısını dengele
+    open_braces = text.count("{") - text.count("}")
+    open_brackets = text.count("[") - text.count("]")
+    text += "}" * open_braces + "]" * open_brackets
+    return text
+
+
 def fetch_truncgil() -> Optional[Dict[str, Any]]:
     """finans.truncgil.com API'sinden anlık altın ve döviz verilerini çeker.
 
     Returns:
         Ham API yanıtı (dict) veya None
     """
-    try:
-        r = requests.get(TRUNCGIL_API_URL, headers=_HEADERS, timeout=10)
-        r.raise_for_status()
-        # API bazen bozuk JSON döndürebiliyor — agresif temizleme
-        text = r.text
-        text = re.sub(r",\s*}", "}", text)
-        text = re.sub(r",\s*]", "]", text)
-        text = re.sub(r"}\s*{", "},{", text)  # missing comma between objects
+    for attempt in range(3):
         try:
-            data = json.loads(text)
-        except json.JSONDecodeError:
-            # Son çare: response'u satır satır temizle
-            text = re.sub(r'[^\x20-\x7E\xC0-\xFF{}[\]:,."\'\\ığüşöçİĞÜŞÖÇ\s]', '', text)
-            data = json.loads(text)
-        logger.info(f"truncgil: veri çekildi ({data.get('Update_Date', '?')})")
-        return data
-    except Exception as e:
-        logger.error(f"truncgil API hatası: {e}")
-        return None
+            r = requests.get(TRUNCGIL_API_URL, headers=_HEADERS, timeout=15)
+            r.raise_for_status()
+            # API bazen bozuk JSON döndürebiliyor — agresif temizleme
+            text = r.text
+            text = re.sub(r",\s*}", "}", text)
+            text = re.sub(r",\s*]", "]", text)
+            text = re.sub(r"}\s*{", "},{", text)  # missing comma between objects
+            try:
+                data = json.loads(text)
+            except json.JSONDecodeError:
+                # Truncated (kesilmiş) JSON onarımı
+                text = _repair_truncated_json(text)
+                try:
+                    data = json.loads(text)
+                    logger.warning("truncgil: kesilmiş JSON onarıldı")
+                except json.JSONDecodeError:
+                    # Son çare: geçersiz karakterleri temizle
+                    text = re.sub(r'[^\x20-\x7E\xC0-\xFF{}[\]:,."\'\\ığüşöçİĞÜŞÖÇ\s]', '', text)
+                    data = json.loads(text)
+            logger.info(f"truncgil: veri çekildi ({data.get('Update_Date', '?')})")
+            return data
+        except Exception as e:
+            logger.warning(f"truncgil API deneme {attempt + 1}/3 başarısız: {e}")
+    logger.error("truncgil API: 3 deneme de başarısız")
+    return None
 
 
 def parse_truncgil_prices(raw: Dict[str, Any]) -> Dict[str, float]:

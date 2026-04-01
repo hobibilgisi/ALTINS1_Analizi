@@ -46,10 +46,11 @@ def create_price_chart(
     )
 
     if show_volume and "Volume" in df.columns:
+        vol = df["Volume"].fillna(0)
         colors = ["#26a69a" if c >= o else "#ef5350"
                   for o, c in zip(df["Open"], df["Close"])]
         fig.add_trace(
-            go.Bar(x=df.index, y=df["Volume"], name="Hacim",
+            go.Bar(x=df.index, y=vol, name="Hacim",
                    marker_color=colors, opacity=0.5),
             row=2, col=1,
         )
@@ -240,7 +241,7 @@ def create_overlay_chart(
     altins1_series: Optional[pd.Series] = None,
     gram_gold_series: Optional[pd.Series] = None,
     ons_gold_series: Optional[pd.Series] = None,
-    gldtr_series: Optional[pd.Series] = None,
+    faiz_series: Optional[pd.Series] = None,
     currency: str = "TL",
 ) -> go.Figure:
     """Altın göstergeleri tek grafikte (normalize edilmiş — % değişim).
@@ -289,19 +290,19 @@ def create_overlay_chart(
             )
         )
 
-    if gldtr_series is not None and len(gldtr_series) > 0:
-        norm = _normalize(gldtr_series)
+    if faiz_series is not None and len(faiz_series) > 0:
+        norm = _normalize(faiz_series)
         fig.add_trace(
             go.Scatter(
                 x=norm.index, y=norm.values,
                 mode="lines",
-                name="GLDTR Fon (TL)",
-                line=dict(color="#26a69a", width=2),
+                name="ABD 10Y Faiz (%)",
+                line=dict(color="#ef5350", width=2, dash="dash"),
             )
         )
 
     fig.update_layout(
-        title=f"ALTINS1 / Gram Altın / Ons Altın / GLDTR ({ccy}) — Normalize Karşılaştırma",
+        title=f"Normalize Karşılaştırma ({ccy})",
         template="plotly_dark",
         yaxis_title="",
         yaxis=dict(showticklabels=False),
@@ -349,64 +350,30 @@ def create_comparison_chart(
     return fig
 
 
-def create_ons_gold_silver_chart(
-    ons_gold_series: pd.Series,
-    ons_silver_series: pd.Series,
+def create_gold_silver_chart(
+    gold_series: pd.Series,
+    silver_series: pd.Series,
+    unit: str = "ons",
+    currency: str = "USD",
 ) -> go.Figure:
-    """Ons altın (USD) ve ons gümüş (USD) dual Y-axis karşılaştırma."""
-    fig = make_subplots(specs=[[{"secondary_y": True}]])
+    """Altın vs Gümüş dual Y-axis karşılaştırma grafiği.
 
-    fig.add_trace(
-        go.Scatter(
-            x=ons_gold_series.index,
-            y=ons_gold_series.values,
-            mode="lines",
-            name="Ons Altın (USD)",
-            line=dict(color="#ffd700", width=2),
-        ),
-        secondary_y=False,
-    )
-
-    fig.add_trace(
-        go.Scatter(
-            x=ons_silver_series.index,
-            y=ons_silver_series.values,
-            mode="lines",
-            name="Ons Gümüş (USD)",
-            line=dict(color="#c0c0c0", width=2),
-        ),
-        secondary_y=True,
-    )
-
-    fig.update_layout(
-        title="Ons Altın vs Ons Gümüş (USD)",
-        template="plotly_dark",
-        height=750,
-        margin=dict(l=50, r=50, t=50, b=30),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-    )
-    fig.update_yaxes(title_text="Ons Altın ($)", secondary_y=False)
-    fig.update_yaxes(title_text="Ons Gümüş ($)", secondary_y=True)
-    return fig
-
-
-def create_gram_gold_silver_chart(
-    gram_gold_series: pd.Series,
-    gram_silver_series: pd.Series,
-    currency: str = "TL",
-) -> go.Figure:
-    """Gram altın ve gram gümüş dual Y-axis karşılaştırma (TL veya USD)."""
+    Args:
+        unit: "ons" veya "gram"
+        currency: "TL" veya "USD"
+    """
     ccy = currency.upper()
     sym = "₺" if ccy == "TL" else "$"
+    unit_label = "Ons" if unit == "ons" else "Gram"
 
     fig = make_subplots(specs=[[{"secondary_y": True}]])
 
     fig.add_trace(
         go.Scatter(
-            x=gram_gold_series.index,
-            y=gram_gold_series.values,
+            x=gold_series.index,
+            y=gold_series.values,
             mode="lines",
-            name=f"Gram Altın ({ccy})",
+            name=f"{unit_label} Altın ({ccy})",
             line=dict(color="#ffd700", width=2),
         ),
         secondary_y=False,
@@ -414,22 +381,22 @@ def create_gram_gold_silver_chart(
 
     fig.add_trace(
         go.Scatter(
-            x=gram_silver_series.index,
-            y=gram_silver_series.values,
+            x=silver_series.index,
+            y=silver_series.values,
             mode="lines",
-            name=f"Gram Gümüş ({ccy})",
+            name=f"{unit_label} Gümüş ({ccy})",
             line=dict(color="#c0c0c0", width=2),
         ),
         secondary_y=True,
     )
 
     fig.update_layout(
-        title=f"Gram Altın vs Gram Gümüş ({ccy})",
+        title=f"{unit_label} Altın vs {unit_label} Gümüş ({ccy})",
         template="plotly_dark",
         height=750,
         margin=dict(l=50, r=50, t=50, b=30),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
     )
-    fig.update_yaxes(title_text=f"Gram Altın ({sym})", secondary_y=False)
-    fig.update_yaxes(title_text=f"Gram Gümüş ({sym})", secondary_y=True)
+    fig.update_yaxes(title_text=f"{unit_label} Altın ({sym})", secondary_y=False)
+    fig.update_yaxes(title_text=f"{unit_label} Gümüş ({sym})", secondary_y=True)
     return fig

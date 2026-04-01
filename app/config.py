@@ -41,7 +41,7 @@ YF_SYMBOLS = {
     "ons_altin_usd": "GC=F",      # Gold Futures (USD)
     "ons_gumus_usd": "SI=F",      # Silver Futures (USD)
     "dolar_tl": "USDTRY=X",       # USD/TRY
-    "gldtr": "GLDTR.IS",          # BIST Altın Fonu (TL)
+    "faiz_us10y": "^TNX",         # ABD 10 Yıllık Tahvil Faizi (%)
 }
 
 # ── TradingView sembolleri (Tarihsel + yedek) ──────────────────

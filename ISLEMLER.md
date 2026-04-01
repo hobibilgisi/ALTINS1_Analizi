@@ -322,3 +322,49 @@
   - [ ] Vercel'e web deployment hazırlığı (Streamlit → web uyumluluk)
   - [ ] Merkez bankası altın rezerv verilerini otomatik çekme
   - [ ] Otomatik periyodik yenileme
+
+---
+
+## Oturum 4 — 01 Nisan 2026
+
+### İşlem 4.1 — ALTINS1 Hacim Verisi Ekle
+- **Tarih**: 01 Nisan 2026
+- **Durum**: ✅ Tamamlandı
+- **Açıklama**: `fetch_altins1_volume()` fonksiyonu data_fetcher.py'de var, ama `fetch_current_prices()`'de çağrılmıyordu.
+- **Değişiklikler**:
+  - `app/data_fetcher.py` — fetch_current_prices() içine `volume_data = fetch_altins1_volume()` çağrısı eklendi
+  - `main.py` — Sidebar "Piyasa Verileri" metriklerine "ALTINS1 Hacim (Lot)" ve "ALTINS1 Hacim (TL)" eklendi
+
+### İşlem 4.2 — Haberler ve Merkez Bankası Tab'ları Ekle
+- **Tarih**: 01 Nisan 2026
+- **Durum**: ✅ Tamamlandı
+- **Açıklama**: 5 tab'dan 7 tab'a çıkış. Tab6 (Haberler) ve Tab7 (Merkez Bankaları) eklendi.
+- **Değişiklikler**:
+  - `main.py` — st.tabs() → 7 sekme (Tab1-5 grafik, Tab6 📰 Haberler, Tab7 🏦 Merkez Bankaları)
+  - `main.py` — Tab6: Günlük (24 saat) + Haftalık haberler (load_news_split() ile)
+  - `main.py` — Tab7: Merkez bankası bilgileri, reserve_tracker.py'den kaynak listesi
+
+### İşlem 4.3 — Versiyon Numarası ve CHANGELOG Ekle
+- **Tarih**: 01 Nisan 2026
+- **Durum**: ✅ Tamamlandı
+- **Değişiklikler**:
+  - `README.md` — Başlık: "🪙 ALTINS1 Analiz v1.0.0" + sürüm tarihi (01 Nisan 2026)
+  - `CHANGELOG.md` — Yeni dosya oluşturuldu:
+    - v1.0.0 özeti (7 sekme, tüm özellikleri listele)
+    - Veri kaynakları detayı
+    - Dosya yapısı şeması
+    - Roadmap (v1.1.0, v1.2.0)
+    - Bilinen sorunlar
+
+### 📋 Oturum 4 — Kapanış Notu
+- **Tamamlanan**: Hacim verisi, Tab6-7 (Haberler + Merkez Bankaları), Versiyon 1.0.0, CHANGELOG.md
+- **Dosya değişiklikleri özeti**:
+  - `app/data_fetcher.py` — fetch_current_prices() → hacim verisi
+  - `main.py` — 7 sekme yapısı, Tab6-7 içeriği
+  - `README.md` — Versiyon 1.0.0
+  - `CHANGELOG.md` — Yeni dosya
+- **Release Hazırlığı**: Git tag v1.0.0 oluşturulacak ve push edilecek
+- **Sonraki adımlar**:
+  - [ ] v1.1.0: TCMB EVDS API entegrasyonu
+  - [ ] v1.1.0: Vercel deployment
+  - [ ] v1.2.0: Database + WebSocket gerçek zamanlı güncellemeler

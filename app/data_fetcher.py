@@ -49,6 +49,15 @@ _HEADERS = {
 
 # ── Mynet Finans: ALTINS1 BIST (Anlık + Tarihsel) ─────────────
 
+def _parse_tr_number(text: str) -> Optional[float]:
+    """Türkçe formatlı sayıyı float'a çevirir. '12.027.303,00' → 12027303.0"""
+    text = text.strip().replace(".", "").replace(",", ".")
+    try:
+        return float(text)
+    except (ValueError, TypeError):
+        return None
+
+
 def fetch_altins1_mynet() -> Tuple[Optional[float], Optional[pd.DataFrame]]:
     """Mynet Finans'tan ALTINS1 anlık fiyat ve tarihsel chart verisini çeker.
 
@@ -108,6 +117,36 @@ def fetch_altins1_mynet() -> Tuple[Optional[float], Optional[pd.DataFrame]]:
     except Exception as e:
         logger.error(f"mynet ALTINS1 hatası: {e}")
         return None, None
+
+
+def fetch_altins1_volume() -> Dict[str, Any]:
+    """Mynet Finans'tan ALTINS1 hacim ve takas verisini çeker."""
+    result: Dict[str, Any] = {}
+    try:
+        r = requests.get(MYNET_ALTINS1_URL, headers=_HEADERS, timeout=15)
+        r.raise_for_status()
+        soup = BeautifulSoup(r.text, "html.parser")
+
+        # "Günlük Hacim (Lot)" ve "Günlük Hacim (TL)" etiketlerini bul
+        for span in soup.find_all("span"):
+            text = span.get_text(strip=True)
+            parent = span.parent
+            if parent is None:
+                continue
+            parent_text = parent.get_text(strip=True)
+
+            if "Hacim (Lot)" in text:
+                val_text = parent_text.replace(text, "").strip()
+                result["hacim_lot"] = _parse_tr_number(val_text)
+            elif "Hacim (TL)" in text:
+                val_text = parent_text.replace(text, "").strip()
+                result["hacim_tl"] = _parse_tr_number(val_text)
+
+        if result:
+            logger.info(f"mynet ALTINS1 hacim: lot={result.get('hacim_lot')}, tl={result.get('hacim_tl')}")
+    except Exception as e:
+        logger.error(f"mynet ALTINS1 hacim hatası: {e}")
+    return result
 
 
 # ── Truncgil API (Anlık Türk piyasası verileri) ───────────────
@@ -217,9 +256,11 @@ def fetch_current_prices() -> Dict[str, Any]:
     """
     result: Dict[str, Any] = {}
 
-    # ── 1) ALTINS1 BIST fiyatı (Mynet) ──────────────────────
+    # ── 1) ALTINS1 BIST fiyatı + hacim (Mynet) ───────────────
     altins1_price, _ = fetch_altins1_mynet()
     result["altins1_fiyat"] = altins1_price
+    volume_data = fetch_altins1_volume()
+    result.update(volume_data)  # hacim_lot, hacim_tl
 
     # ── 2) Truncgil API ─────────────────────────────────────
     raw = fetch_truncgil()

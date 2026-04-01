@@ -1,6 +1,8 @@
-# ALTINS1_Analizi
+# 🪙 ALTINS1 Analiz v1.0.0
 
-gr altın, ons altın, $/TL, faiz, enflasyon ve gündem değerlerini baz alarak güncel ALTINS1 fiyatının analizini yapar ve al/sat sinyali üretir. Gümüş ve petrol için de eklentiler yapılacak.
+gr altın, ons altın, $/TL, faiz, enflasyon ve gündem değerlerini baz alarak güncel ALTINS1 fiyatının analizini yapar ve al/sat sinyali üretir.
+
+**Sürüm**: 1.0.0 | **Çıkış**: 01 Nisan 2026
 
 ---
 

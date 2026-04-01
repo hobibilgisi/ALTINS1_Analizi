@@ -40,7 +40,7 @@ from app.signal_engine import evaluate_signal, generate_signal_message, SignalTy
 from app.charts import (
     create_price_chart, create_spread_chart,
     create_altins1_vs_expected_chart, create_overlay_chart,
-    create_ons_gold_silver_chart, create_gram_gold_silver_chart,
+    create_gold_silver_chart,
 )
 from app.news_fetcher import get_gold_news, get_daily_and_weekly_news
 from app.email_notifier import send_daily_signal_email
@@ -115,7 +115,17 @@ st.markdown(f"""
     }}
     /* Tab etiketleri */
     .stMainBlockContainer button[data-baseweb="tab"] {{
-        font-size: {_font_size}px !important;
+        font-size: {_font_size + 2}px !important;
+    }}
+    /* Başlıklar (header/subheader) */
+    .stMainBlockContainer h1 {{
+        font-size: {_font_size + 14}px !important;
+    }}
+    .stMainBlockContainer h2 {{
+        font-size: {_font_size + 10}px !important;
+    }}
+    .stMainBlockContainer h3 {{
+        font-size: {_font_size + 6}px !important;
     }}
 </style>
 """, unsafe_allow_html=True)
@@ -244,16 +254,17 @@ if has_gumus_hist:
                 gumus_hist.loc[silver_common, "Close"] * usdtry_hist.loc[silver_common, "Close"]
             ) / TROY_OUNCE_GRAM
 
-# ── GLDTR Fon tarihsel veri hazırlığı ─────────────────────────
-has_gldtr_hist = history.get("gldtr") is not None
-gldtr_hist_series = None
 
-if has_gldtr_hist:
-    gldtr_hist = history["gldtr"].copy()
-    gldtr_hist.index = pd.to_datetime(gldtr_hist.index).tz_localize(None).normalize()
-    gldtr_hist = gldtr_hist[~gldtr_hist.index.duplicated(keep="last")]
-    if "Close" in gldtr_hist.columns and not gldtr_hist["Close"].dropna().empty:
-        gldtr_hist_series = gldtr_hist["Close"]
+# ── Faiz tarihsel veri hazırlığı ─────────────────────────────
+has_faiz_hist = history.get("faiz_us10y") is not None
+faiz_hist_series = None
+
+if has_faiz_hist:
+    faiz_hist = history["faiz_us10y"].copy()
+    faiz_hist.index = pd.to_datetime(faiz_hist.index).tz_localize(None).normalize()
+    faiz_hist = faiz_hist[~faiz_hist.index.duplicated(keep="last")]
+    if "Close" in faiz_hist.columns and not faiz_hist["Close"].dropna().empty:
+        faiz_hist_series = faiz_hist["Close"]
 
 # ── Anlık veriyle tarihsel son günü eşitle ────────────────────
 # Üst paneldeki anlık makas (truncgil gram altın + mynet anlık ALTINS1) ile
@@ -354,28 +365,32 @@ if altins1_fiyat and gram_altin_tl and beklenen:
 | Formül | (Gerçek - Beklenen) / Beklenen × 100 |
 """)
 
-    # Ek altın fiyatları
-    dolar_tl = prices.get("dolar_tl")
-    extras = []
-    for lbl, key in [
-        ("Dolar/TL", "dolar_tl"),
-        ("Çeyrek Altın", "ceyrek_altin"),
-        ("Yarım Altın", "yarim_altin"),
-        ("Tam Altın", "tam_altin"),
-        ("Has Altın", "has_altin_tl"),
-    ]:
-        val = prices.get(key)
-        if val:
-            extras.append((lbl, val))
-    if extras:
-        ecols = st.columns(len(extras))
-        for i, (lbl, val) in enumerate(extras):
-            fmt = f"₺{val:,.4f}" if lbl == "Dolar/TL" else f"₺{val:,.2f}"
-            ecols[i].metric(lbl, fmt)
-
     update_date = prices.get("update_date")
     if update_date:
         st.caption(f"📡 Veri güncelleme: {update_date}")
+
+    # Ek fiyatları sidebar'a taşı
+    with st.sidebar:
+        st.markdown("---")
+        st.subheader("💰 Piyasa Verileri")
+        for lbl, key in [
+            ("Dolar/TL", "dolar_tl"),
+            ("Çeyrek Altın", "ceyrek_altin"),
+            ("Yarım Altın", "yarim_altin"),
+            ("Tam Altın", "tam_altin"),
+            ("Has Altın", "has_altin_tl"),
+            ("ALTINS1 Hacim (Lot)", "hacim_lot"),
+            ("ALTINS1 Hacim (TL)", "hacim_tl"),
+        ]:
+            val = prices.get(key)
+            if val:
+                if lbl == "Dolar/TL":
+                    fmt = f"₺{val:,.4f}"
+                elif "Hacim" in lbl:
+                    fmt = f"{val:,.0f}"
+                else:
+                    fmt = f"₺{val:,.2f}"
+                st.metric(lbl, fmt)
 
 else:
     st.error(
@@ -452,9 +467,11 @@ def _apply_chart_font(fig):
     # Tüm trace'lerde hover formatını 2 ondalık + kompakt etiket
     # + hover etiketini çizgi rengine eşitle
     for _tr in fig.data:
-        if hasattr(_tr, "yhoverformat"):
+        # Candlestick ve OHLC'ye özel hover formatı atama (kendi hover'ı var)
+        is_ohlc = _tr.__class__.__name__ in ("Candlestick", "Ohlc")
+        if not is_ohlc and hasattr(_tr, "yhoverformat"):
             _tr.yhoverformat = ".2f"
-        if hasattr(_tr, "hovertemplate") and _tr.hovertemplate is None:
+        if not is_ohlc and hasattr(_tr, "hovertemplate") and _tr.hovertemplate is None:
             _tr.hovertemplate = "<b>%{fullData.name}</b>: %{y:.2f}<extra></extra>"
         # Etiket arka planını çizgi/marker rengine eşitle
         _clr = None
@@ -470,7 +487,7 @@ def _apply_chart_font(fig):
             )
     fig.update_layout(
         font=dict(size=_font_size),
-        title_font_size=_font_size + 3,
+        title_font_size=_font_size + 6,
         legend_font_size=_font_size,
         height=_chart_height,
         # "x" modu: her trace kendi Y konumunda etiket gösterir
@@ -492,7 +509,12 @@ def _apply_chart_font(fig):
     )
     fig.update_yaxes(
         tickfont_size=_font_size - 1,
-        showspikes=False,
+        showspikes=True,
+        spikemode="across",
+        spikesnap="cursor",
+        spikethickness=1,
+        spikecolor="#888888",
+        spikedash="dot",
         hoverformat=".2f",
     )
     # Annotation'lar (hline etiketleri vb.)
@@ -528,9 +550,9 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
     "📊 S1/Gr Oranı Analizi",
     "📈 Normalize Karşılaştırma",
     "🕯️ Ons Altın (XAU/USD)",
-    "🥇🥈 Ons Altın vs Ons Gümüş",
-    "⚖️ Gram Altın vs Gram Gümüş",
-    "🔗 Altın / Gümüş Oranı",
+    "🥇🥈 Altın vs Gümüş",
+    "📰 Haberler",
+    "🏦 Merkez Bankaları",
 ])
 
 with tab1:
@@ -677,8 +699,8 @@ with tab3:
         _norm_series["ons"] = ons_usd_hist_series
     elif ons_usd_hist_series is not None and len(ons_usd_hist_series) > 0:
         _norm_series["ons"] = ons_usd_hist_series  # Ons her zaman USD göster
-    if gldtr_hist_series is not None and len(gldtr_hist_series) > 0:
-        _norm_series["gldtr"] = gldtr_hist_series
+    if faiz_hist_series is not None and len(faiz_hist_series) > 0:
+        _norm_series["faiz"] = faiz_hist_series
 
     # Checkbox'lar — sadece mevcut seriler için göster
     _t3_cols = st.columns(len(_norm_series)) if _norm_series else []
@@ -687,7 +709,7 @@ with tab3:
         "altins1": ("🔵 ALTINS1", "t3_altins1"),
         "gram": ("🟠 Gram Altın", "t3_gram"),
         "ons": ("🟣 Ons Altın (USD)", "t3_ons"),
-        "gldtr": ("🟢 GLDTR Fon", "t3_gldtr"),
+        "faiz": ("🔴 ABD 10Y Faiz", "t3_faiz"),
     }
     for i, key in enumerate(_norm_series):
         lbl, cb_key = _t3_meta[key]
@@ -704,7 +726,7 @@ with tab3:
         a1 = altins1_hist_series.loc[common_start:common_end] if "altins1" in _norm_visible else None
         gt = gram_gold_hist_series.loc[common_start:common_end] if "gram" in _norm_visible else None
         ot = _norm_series["ons"].loc[common_start:common_end] if "ons" in _norm_visible else None
-        gl = gldtr_hist_series.loc[common_start:common_end] if "gldtr" in _norm_visible else None
+        fz = faiz_hist_series.loc[common_start:common_end] if "faiz" in _norm_visible else None
 
         if norm_ccy == "USD" and usdtry_hist_series is not None:
             usd_rate = usdtry_hist_series.loc[common_start:common_end]
@@ -714,16 +736,13 @@ with tab3:
             if gt is not None:
                 ci = gt.index.intersection(usd_rate.index)
                 gt = gt.loc[ci] / usd_rate.loc[ci]
-            if gl is not None:
-                ci = gl.index.intersection(usd_rate.index)
-                gl = gl.loc[ci] / usd_rate.loc[ci]
-            # ot zaten USD, dönüşüm gerekmez
+            # ot ve fz zaten USD bazlı, dönüşüm gerekmez
 
         fig_overlay = create_overlay_chart(
             altins1_series=a1,
             gram_gold_series=gt,
             ons_gold_series=ot,
-            gldtr_series=gl,
+            faiz_series=fz,
             currency=norm_ccy,
         )
         _apply_chart_font(fig_overlay)
@@ -756,124 +775,97 @@ with tab4:
         st.warning("Ons altın tarihsel verisi yüklenemedi.")
 
 with tab5:
-    if ons_usd_hist_series is not None and ons_silver_usd_hist_series is not None:
-        _t5c1, _t5c2 = st.columns(2)
-        _show_t5_gold = _t5c1.checkbox("🟡 Ons Altın", value=True, key="t5_gold")
-        _show_t5_silver = _t5c2.checkbox("⚪ Ons Gümüş", value=True, key="t5_silver")
-        _t5_ema = _ema_checkboxes(st, "t5")
+    # Birim ve para birimi seçimi
+    _t5_opt1, _t5_opt2 = st.columns(2)
+    t5_unit = _t5_opt1.radio("Birim", ["Ons", "Gram"], horizontal=True, key="t5_unit")
+    t5_ccy = _t5_opt2.radio("Para birimi", ["TL", "USD"], horizontal=True, key="t5_currency")
 
-        # Ortak tarih aralığı
-        gs_common = ons_usd_hist_series.index.intersection(ons_silver_usd_hist_series.index)
+    # Seriler & checkbox
+    _t5c1, _t5c2 = st.columns(2)
+    _show_t5_gold = _t5c1.checkbox("🟡 Altın", value=True, key="t5_gold")
+    _show_t5_silver = _t5c2.checkbox("⚪ Gümüş", value=True, key="t5_silver")
+
+    # Ayrı EMA seçenekleri
+    _t5_ema_col1, _t5_ema_col2 = st.columns(2)
+    with _t5_ema_col1:
+        st.caption("🟡 Altın EMA")
+        _t5_ema_gold = _ema_checkboxes(st, "t5g")
+    with _t5_ema_col2:
+        st.caption("⚪ Gümüş EMA")
+        _t5_ema_silver = _ema_checkboxes(st, "t5s")
+
+    # Veri seçimi
+    if t5_unit == "Ons":
+        _gold_s = ons_usd_hist_series
+        _silver_s = ons_silver_usd_hist_series
+    else:
+        _gold_s = gram_gold_hist_series
+        _silver_s = gram_silver_hist_series
+
+    if _gold_s is not None and _silver_s is not None:
+        gs_common = _gold_s.index.intersection(_silver_s.index)
         if len(gs_common) > 0:
-            fig_ons_gs = create_ons_gold_silver_chart(
-                ons_usd_hist_series.loc[gs_common],
-                ons_silver_usd_hist_series.loc[gs_common],
+            _g = _gold_s.loc[gs_common].copy()
+            _s = _silver_s.loc[gs_common].copy()
+
+            # USD dönüşümü (gram TL → USD)
+            if t5_ccy == "USD" and t5_unit == "Gram" and usdtry_hist_series is not None:
+                usd_rate = usdtry_hist_series.loc[usdtry_hist_series.index.intersection(gs_common)]
+                ci = _g.index.intersection(usd_rate.index)
+                _g = _g.loc[ci] / usd_rate.loc[ci]
+                _s = _s.loc[ci] / usd_rate.loc[ci]
+                gs_common = ci
+            # TL dönüşümü (ons USD → TL)
+            elif t5_ccy == "TL" and t5_unit == "Ons" and usdtry_hist_series is not None:
+                usd_rate = usdtry_hist_series.loc[usdtry_hist_series.index.intersection(gs_common)]
+                ci = _g.index.intersection(usd_rate.index)
+                _g = _g.loc[ci] * usd_rate.loc[ci]
+                _s = _s.loc[ci] * usd_rate.loc[ci]
+                gs_common = ci
+
+            fig_gs = create_gold_silver_chart(
+                _g, _s, unit=t5_unit.lower(), currency=t5_ccy,
             )
-            for _tr in fig_ons_gs.data:
+            for _tr in fig_gs.data:
                 if "Altın" in _tr.name and not _show_t5_gold:
                     _tr.visible = False
                 if "Gümüş" in _tr.name and not _show_t5_silver:
                     _tr.visible = False
-            _add_ema_traces(fig_ons_gs, ons_usd_hist_series.loc[gs_common], _t5_ema, secondary_y=False)
-            _apply_chart_font(fig_ons_gs)
-            st.plotly_chart(fig_ons_gs, width="stretch")
+
+            # Altın/Gümüş oran serisi — grafik en üstünde beyaz çizgi ile göster
+            _ratio_series = _g / _s
+            _ratio_int = _ratio_series.round(0).astype(int)
+            fig_gs.add_trace(
+                go.Scatter(
+                    x=list(_ratio_series.index),
+                    y=[_g.max() * 1.03] * len(_ratio_series),
+                    mode="lines",
+                    name="Oran",
+                    line=dict(color="#fff", width=2, dash="solid"),
+                    showlegend=False,
+                    hovertemplate="<b style='color:white'>Au/Ag Oran</b>: %{customdata}<extra></extra>",
+                    customdata=list(_ratio_int.values),
+                ),
+            )
+
+            _add_ema_traces(fig_gs, _g, _t5_ema_gold, label_prefix="Au ", secondary_y=False)
+            _add_ema_traces(fig_gs, _s, _t5_ema_silver, label_prefix="Ag ", line_dash="dot", secondary_y=True)
+            _apply_chart_font(fig_gs)
+            st.plotly_chart(fig_gs, width="stretch")
             st.caption(
                 f"📅 Ortak aralık: {gs_common.min().strftime('%d.%m.%Y')} — "
                 f"{gs_common.max().strftime('%d.%m.%Y')} ({len(gs_common)} gün)"
             )
-            # Gold/Silver ratio
-            ratio = ons_usd_hist_series.loc[gs_common] / ons_silver_usd_hist_series.loc[gs_common]
-            st.metric("Altın/Gümüş Oranı (Güncel)", f"{ratio.iloc[-1]:.1f}")
+            st.metric("Altın/Gümüş Oranı (Güncel)", f"{_ratio_series.iloc[-1]:.1f}")
         else:
             st.warning("Altın ve gümüş tarih aralıkları örtüşmüyor.")
     else:
-        st.warning("Ons altın veya ons gümüş tarihsel verisi yüklenemedi.")
+        st.warning("Altın veya gümüş tarihsel verisi yüklenemedi.")
+
 
 with tab6:
-    tab6_ccy = st.radio("Para birimi", ["TL", "USD"], horizontal=True, key="tab6_currency")
-
-    if gram_gold_hist_series is not None and gram_silver_hist_series is not None:
-        _t6c1, _t6c2 = st.columns(2)
-        _show_t6_gold = _t6c1.checkbox("🟡 Gram Altın", value=True, key="t6_gold")
-        _show_t6_silver = _t6c2.checkbox("⚪ Gram Gümüş", value=True, key="t6_silver")
-        _t6_ema = _ema_checkboxes(st, "t6")
-
-        gs_gram_common = gram_gold_hist_series.index.intersection(gram_silver_hist_series.index)
-        if len(gs_gram_common) > 0:
-            g_gold = gram_gold_hist_series.loc[gs_gram_common]
-            g_silver = gram_silver_hist_series.loc[gs_gram_common]
-
-            if tab6_ccy == "USD" and usdtry_hist_series is not None:
-                usd_rate = usdtry_hist_series.loc[usdtry_hist_series.index.intersection(gs_gram_common)]
-                ci = g_gold.index.intersection(usd_rate.index)
-                g_gold = g_gold.loc[ci] / usd_rate.loc[ci]
-                g_silver = g_silver.loc[ci] / usd_rate.loc[ci]
-                gs_gram_common = ci
-
-            fig_gram_gs = create_gram_gold_silver_chart(
-                g_gold, g_silver, currency=tab6_ccy,
-            )
-            for _tr in fig_gram_gs.data:
-                if "Altın" in _tr.name and not _show_t6_gold:
-                    _tr.visible = False
-                if "Gümüş" in _tr.name and not _show_t6_silver:
-                    _tr.visible = False
-            _add_ema_traces(fig_gram_gs, g_gold, _t6_ema, secondary_y=False)
-            _apply_chart_font(fig_gram_gs)
-            st.plotly_chart(fig_gram_gs, width="stretch")
-            st.caption(
-                f"📅 Ortak aralık: {gs_gram_common.min().strftime('%d.%m.%Y')} — "
-                f"{gs_gram_common.max().strftime('%d.%m.%Y')} ({len(gs_gram_common)} gün)"
-            )
-        else:
-            st.warning("Gram altın ve gram gümüş tarih aralıkları örtüşmüyor.")
-    else:
-        st.warning("Gram altın veya gram gümüş tarihsel verisi hesaplanamadı.")
-
-with tab7:
-    if ons_usd_hist_series is not None and ons_silver_usd_hist_series is not None:
-        _show_t7_ratio = st.checkbox("🟡 Oran", value=True, key="t7_ratio")
-        _t7_ema = _ema_checkboxes(st, "t7")
-
-        ratio_common = ons_usd_hist_series.index.intersection(ons_silver_usd_hist_series.index)
-        if len(ratio_common) > 0:
-            gold_silver_ratio = ons_usd_hist_series.loc[ratio_common] / ons_silver_usd_hist_series.loc[ratio_common]
-            gold_silver_ratio = gold_silver_ratio.sort_index()
-            fig_ratio = go.Figure()
-            if _show_t7_ratio:
-                fig_ratio.add_trace(go.Scatter(
-                    x=gold_silver_ratio.index, y=gold_silver_ratio.values,
-                    mode="lines", name="Altın/Gümüş Oranı",
-                    line=dict(color="#ffd700", width=2),
-                    fill="tozeroy",
-                    fillcolor="rgba(255, 215, 0, 0.1)",
-                ))
-            _add_ema_traces(fig_ratio, gold_silver_ratio, _t7_ema)
-            fig_ratio.update_layout(
-                title="Altın / Gümüş Oranı (Gold/Silver Ratio)",
-                template="plotly_dark",
-                yaxis_title="Oran",
-                height=_chart_height,
-                margin=dict(l=50, r=50, t=50, b=30),
-            )
-            _apply_chart_font(fig_ratio)
-            st.plotly_chart(fig_ratio, width="stretch")
-            st.caption(
-                f"Güncel oran: **{gold_silver_ratio.iloc[-1]:.1f}**"
-            )
-        else:
-            st.warning("Altın ve gümüş tarih aralıkları örtüşmüyor.")
-    else:
-        st.warning("Ons altın veya ons gümüş verisi yüklenemedi.")
-
-
-# ═══════════════════════════════════════════════════════════════
-# 3) HABERLER
-# ═══════════════════════════════════════════════════════════════
-st.markdown("---")
-st.header("📰 Haberler")
-
-daily_news, weekly_news = load_news_split()
+    st.subheader("📰 Haberler")
+    daily_news, weekly_news = load_news_split()
 
 # Günlük haberler (son 24 saat)
 st.subheader("📅 Günlük — Son 24 Saat")
@@ -902,9 +894,36 @@ else:
     st.info("Bu hafta ilgili haber bulunamadı.")
 
 
+
+with tab7:
+    from app.reserve_tracker import fetch_reserve_data, get_reserve_sources_info
+
+    st.subheader("🏦 Merkez Bankası Altın Rezervleri")
+    st.caption("Başlıca merkez bankalarının altın stoku bilgileri")
+
+    reserves = fetch_reserve_data()
+    sources = get_reserve_sources_info()
+
+    if reserves:
+        for reserve in reserves:
+            st.markdown(f"**{reserve.institution}** ({reserve.country}) — {reserve.note}")
+
+    st.markdown("---")
+    st.subheader("📊 Kaynak Listesi")
+    reserve_df = pd.DataFrame([
+        {
+            "Kurum": s["name"],
+            "Kod": s["code"],
+            "Güncelleme": s["update_freq"],
+        }
+        for s in sources
+    ])
+    st.dataframe(reserve_df, use_container_width=True, hide_index=True)
+
+
 # ═══════════════════════════════════════════════════════════════
 # 4) E-POSTA BİLDİRİM
-# ═══════════════════════════════════════════════════════════════
+════════════════════
 st.markdown("---")
 st.header("📧 E-posta Bildirim")
 

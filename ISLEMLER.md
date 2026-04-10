@@ -368,3 +368,129 @@
   - [ ] v1.1.0: TCMB EVDS API entegrasyonu
   - [ ] v1.1.0: Vercel deployment
   - [ ] v1.2.0: Database + WebSocket gerçek zamanlı güncellemeler
+
+---
+
+## Oturum 5 — 10 Nisan 2026
+
+### İşlem 5.1 — Mobil Grafik Zoom/Pan Sorunu Çözümü
+- **Tarih**: 10 Nisan 2026
+- **Durum**: ✅ Tamamlandı
+- **Sorun**: Mobilde grafiğe dokunulduğunda yakınlaştırma aracı istemeden devreye giriyordu. Ekran kaydırma ve tarih değerlerini okuma zorlaşıyordu.
+- **Çözüm**:
+  - Sidebar'a "📌 Grafik Kilidi" toggle eklendi (varsayılan: AÇIK)
+  - Kilit açıkken `dragmode=False` → dokunma ile zoom yapılamaz
+  - Tüm `st.plotly_chart()` çağrılarına `config={'scrollZoom': False, 'displayModeBar': True, 'displaylogo': False}` eklendi
+  - `select2d` ve `lasso2d` araçları modebar'dan kaldırıldı
+  - Kullanıcı kilidi kapatarak eski zoom davranışına dönebilir
+
+### İşlem 5.2 — Grafik Başlığı ve Araç Çubuğu Çakışması Düzeltmesi
+- **Tarih**: 10 Nisan 2026
+- **Durum**: ✅ Tamamlandı
+- **Sorun**: Mobilde grafik başlığı (sol üst) ile plotly modebar araçları (sağ üst) üst üste biniyordu.
+- **Çözüm**:
+  - `_apply_chart_font()` içinde `title_x=0.0, title_xanchor="left"` → başlık sol kenara sabitlendi
+  - `margin.t` 50 → 80 px'e çıkarıldı → başlık ile modebar arasına boşluk
+  - `title_font_size` `+6` → `+4` küçültüldü → daha az yer kaplama
+
+### İşlem 5.3 — Merkez Bankaları Verisi İyileştirmesi
+- **Tarih**: 10 Nisan 2026
+- **Durum**: ✅ Tamamlandı
+- **Sorunlar**:
+  1. Grafik sadece birkaç günlük veri içeriyordu, anlamlı değildi
+  2. "%" ifadesinin neye ait olduğu (değişim mi, rezerv payı mı) belirsizdi
+- **Çözümler**:
+  - "Altın Payı" olarak açıkça etiketlendi (eskiden "Rez:" yazıyordu)
+  - Öne çıkan ülke kartlarında sıra numarası etikete taşındı
+  - Açıklama metni eklendi: "Altın Payı: Ülkenin toplam döviz rezervleri içinde altının yüzdesel ağırlığı"
+  - Grafik bölümüne "Veriler her gün otomatik kaydedilir" bilgilendirmesi eklendi
+  - Veri < 2 gün olduğunda grafik yerine tablo formatı gösterilir
+  - Veri < 30 gün olduğunda "anlamlı trend analizi için 30+ gün gerekli" uyarısı
+  - `% Değişim Göster` toggle varsayılanı `True` → `False` (ton bazlı görünüm öncelikli)
+  - Değişim özeti varsayılan olarak açık (`expanded=True`)
+  - Tam tablo sütun adı "Rezerv Payı (%)" → "Altın Payı (%)"
+
+### İşlem 5.4 — GitHub Fork Butonu ve Streamlit Footer Gizleme
+- **Tarih**: 10 Nisan 2026
+- **Durum**: ✅ Tamamlandı
+- **Sorun**: Mobilde sağ üstte GitHub sembolü/fork butonu, sağ altta Streamlit footer/download sekmesi görünüyordu.
+- **Çözüm**: CSS ile gizleme eklendi:
+  - `.stDeployButton`, `viewerBadge_*`, GitHub linkleri → `display: none`
+  - `footer` → `visibility: hidden`
+  - Not: Projeyi GitHub'da **private** yaparak fork + kaynak kod erişimi tamamen engellenebilir. Streamlit Cloud private repo'lardan deploy destekler, uygulama yine halka açık çalışır.
+
+### İşlem 5.5 — PWA Desteği (Mobil Ana Ekran Kısayolu)
+- **Tarih**: 10 Nisan 2026
+- **Durum**: ✅ Tamamlandı
+- **Sorun**: Mobilde Chrome'dan "Ana ekrana ekle" seçeneği çalışmıyordu.
+- **Çözüm**:
+  - `.streamlit/static/manifest.json` oluşturuldu (PWA web app manifest)
+  - `config.toml` → `enableStaticServing = true` eklendi
+  - `main.py` → `<link rel="manifest">` ve Apple/Chrome meta etiketleri enjekte edildi
+  - Chrome: Menü → "Ana ekrana ekle" / "Uygulamayı yükle" seçeneği artık görünecek
+  - Safari (iOS): Paylaş → "Ana Ekrana Ekle" ile çalışır
+
+### 📋 Oturum 5 — Kapanış Notu
+- **Tamamlanan**: Mobil zoom fix, başlık çakışma fix, merkez bankası iyileştirme, GitHub/Streamlit gizleme, PWA desteği
+- **Dosya değişiklikleri**:
+  - `main.py` — Grafik kilidi toggle, dragmode kontrol, plotly config, CSS gizleme, PWA meta, MB iyileştirmeler
+  - `.streamlit/config.toml` — `enableStaticServing = true`
+  - `.streamlit/static/manifest.json` — Yeni dosya (PWA manifest)
+- **Onay bekleyen öneriler**:
+  - MB verisi için daha zengin tarihsel kaynak (IMF IFS API veya WGC data API) entegrasyonu
+  - "Altın Alım Gücü" metriği: Ülke altın × güncel altın fiyatı = toplam USD değer
+  - MB alımları vs altın fiyat korelasyonu analizi
+- **Devam noktası**: TALIMATLAR.md §9 yapılacaklar güncellemesi, CHANGELOG güncelleme
+
+---
+
+### İşlem 5.6 — Tarihsel Merkez Bankası Altın Rezerv Verisi Entegrasyonu
+- **Tarih**: 10 Nisan 2026
+- **Durum**: ✅ Tamamlandı
+- **Açıklama**: Kullanıcı IMF IFS API entegrasyonunu (Seçenek 3) onayladı. Ancak IMF SDMX API (`dataservices.imf.org`) bağlantı zaman aşımına uğradı (muhtemelen ağ/firewall). Alternatif olarak WGC/IMF IFS tarihsel veriler gömülü (embedded) olarak uygulamaya entegre edildi.
+- **Araştırma süreci**:
+  1. IMF SDMX API → Connection Timeout (erişilemedi)
+  2. FRED API → ✅ 200 OK ama sadece "reserves excluding gold" USD serisi var, altın ton verisi yok
+  3. WGC Excel → 403 Forbidden (bot koruması)
+  4. Wikipedia gold reserve tablosu → ✅ Çalışıyor (User-Agent ile)
+  5. IMF web arayüzü (`imf.org/external/np/fin/tad/exfin2.aspx`) → ✅ Erişilebilir, aylık veri 2000+ yılına kadar
+- **Mimari karar**: WGC/IMF IFS verilerinden derlenen çeyreklik tarihsel veriyi Python dict olarak gömmek + Wikipedia güncel snapshot'larını birleştirmek
+- **Oluşturulan dosyalar**:
+  - `app/historical_reserves.py` — 11 ülke × 32 çeyreklik dönem (2018-Q1 → 2025-Q4) gömülü veri
+  - `app/reserve_signals.py` — 3 sinyal tipi + bileşik sinyal hesaplama modülü
+  - `tests/test_data_sources.py` — Çoklu veri kaynağı erişilebilirlik testi
+  - `tests/test_fred_series.py` — FRED seri keşif testi
+  - `tests/test_imf_api.py` — IMF SDMX API testi
+  - `tests/test_signals.py` — Sinyal hesaplama doğrulama testi
+  - `tests/check_syntax.py` — Sözdizimi doğrulama yardımcısı
+- **Güncellenen dosyalar**:
+  - `app/reserve_tracker.py` — Yeni periyotlar (1a/3a/6a/1y/3y/5y/tumu), `build_history_dataframe()` yeniden yazıldı (WGC + snapshot birleştirme)
+  - `main.py` — Tab7'ye sinyal paneli eklendi, periyot seçici güncellendi, açıklama metinleri güncellendi
+
+### İşlem 5.7 — Merkez Bankası Sinyal Analiz Sistemi
+- **Tarih**: 10 Nisan 2026
+- **Durum**: ✅ Tamamlandı
+- **Açıklama**: Kullanıcının amacı: "Altın fiyatlarının seyrinde merkez bankalarının hareketlerinden işaret alarak karar vermek"
+- **Sinyal tipleri** (`app/reserve_signals.py`):
+  1. **Net Alım Momentum** — Son N çeyrekte toplam net tonaj değişimi, ±100'e normalize
+  2. **Alıcı/Satıcı Oranı** — Alıcı vs satıcı MB sayısı oranı (30+ gün geriye bakış)
+  3. **Ağırlıklı Talep Endeksi** — MB önemine göre ağırlıklı (Çin=3×, Hindistan/Polonya/Türkiye=2×, Rusya=1.5×)
+  4. **Bileşik Sinyal** — 3 sinyalin ortalaması
+- **Sinyal sınıflandırma**: ≥60 Güçlü Alım 🟢, ≥25 Alım 🟢, ≥-25 Nötr 🟡, ≥-60 Satış 🔴, <-60 Güçlü Satış 🔴
+- **Tab7 UI**: Bileşik sinyal metrici + ilerleme çubuğu, sinyal detayları expander, veri noktası/ülke sayısı bilgisi
+- **Test sonuçları**: Syntax OK (1345 satır), tüm modül importları doğrulandı, 35 veri noktası (2018-2026)
+
+### İşlem 5.8 — Veri Kaynağı Kapsamı
+- **Tarih**: 10 Nisan 2026
+- **Durum**: 📋 Bilgi notu
+- **Kapsanan ülkeler (WGC tarihsel)**: ABD, Almanya, İtalya, Fransa, Rusya, Çin, İsviçre, Hindistan, Japonya, Türkiye, Polonya
+- **Kapsanan ülkeler (Wikipedia güncel)**: 53 ülke
+- **Tarihsel veri aralığı**: 2018-Q1 → 2025-Q4 (çeyreklik, ton bazında)
+- **Güncel snapshot**: Günlük Wikipedia scraping (3 günlük veri mevcut: 5-7 Nisan 2026)
+- **Bilinen veri farklılıkları**: Polonya — WGC 580t (Q4 2025) vs Wikipedia 550.2t (kaynak/zamanlama farkı)
+
+### 📋 Oturum 5 Faz 2 — Kapanış Notu
+- **Tamamlanan**: Tarihsel rezerv verisi entegrasyonu, sinyal analiz sistemi, Tab7 zenginleştirme
+- **Yeni dosyalar**: `app/historical_reserves.py`, `app/reserve_signals.py`, 5 test dosyası
+- **Güncellenen dosyalar**: `app/reserve_tracker.py`, `main.py`
+- **Onay bekleyen öneriler**: Ek sinyal yöntemleri (aşağıda sunulacak)

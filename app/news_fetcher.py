@@ -16,6 +16,23 @@ from app.config import RSS_FEEDS, NEWS_KEYWORDS, NEWS_KEYWORDS_WEEKLY
 
 logger = logging.getLogger(__name__)
 
+# Spor haberleri hariç tutma anahtar kelimeleri
+_EXCLUDE_KEYWORDS = [
+    "futbol", "süper lig", "şampiyonlar ligi", "champions league",
+    "basketbol", "euroleague", "nba",
+    "galatasaray", "fenerbahçe", "beşiktaş", "trabzonspor",
+    "transfer", "gol ", "maç ", "milli takım", "teknik direktör",
+    "şampiyon", "play-off", "derbi", "stadyum",
+    "tff", "fifa", "uefa", "olimpiyat",
+    "voleybol", "atletizm", "tenis", "formula 1",
+]
+_EXCLUDE_LOWER = [kw.lower() for kw in _EXCLUDE_KEYWORDS]
+
+
+def _is_sports_news(text: str) -> bool:
+    """Metin spor haberi içeriyorsa True döner."""
+    return any(kw in text for kw in _EXCLUDE_LOWER)
+
 
 def _strip_html(text: str) -> str:
     """HTML/CSS etiketlerini ve style bloklarını temizler."""
@@ -91,6 +108,8 @@ def filter_gold_news(news_items: List[NewsItem]) -> List[NewsItem]:
 
     for item in news_items:
         text = f"{item.title} {item.summary or ''}".lower()
+        if _is_sports_news(text):
+            continue
         if any(kw in text for kw in keywords_lower):
             filtered.append(item)
 
@@ -141,6 +160,9 @@ def get_daily_and_weekly_news() -> Tuple[List[NewsItem], List[NewsItem]]:
     for item in all_news:
         pub_dt = _parse_pub_date(item.published)
         text = f"{item.title} {item.summary or ''}".lower()
+
+        if _is_sports_news(text):
+            continue
 
         if pub_dt is not None:
             # Timezone-aware karşılaştırma

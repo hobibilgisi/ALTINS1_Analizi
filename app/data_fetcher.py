@@ -411,6 +411,11 @@ def save_prices_to_cache(prices: Dict[str, Any]) -> None:
         with open(_PRICE_CACHE_PATH, "w", encoding="utf-8") as f:
             json.dump(cache_data, f, ensure_ascii=False, indent=2)
         logger.info("Fiyat cache dosyasına kaydedildi")
+
+        # Hacim geçmişini de kaydet (aylık ortalama hesabı için)
+        hacim = prices.get("hacim_lot")
+        if hacim:
+            _save_volume_history(hacim)
     except Exception as e:
         logger.error(f"Fiyat cache yazma hatası: {e}")
 
@@ -429,4 +434,46 @@ def load_prices_from_cache() -> Optional[Dict[str, Any]]:
         return data
     except Exception as e:
         logger.error(f"Fiyat cache okuma hatası: {e}")
+        return None
+
+
+# ── Hacim Geçmişi (Aylık Ortalama Hesabı) ─────────────────────
+
+_VOLUME_HISTORY_PATH = os.path.join(os.path.dirname(_PRICE_CACHE_PATH), "volume_history.json")
+
+
+def _save_volume_history(hacim_lot: float) -> None:
+    """Günlük hacim verisini tarih bazlı JSON dosyasına ekler."""
+    today = datetime.now().strftime("%Y-%m-%d")
+    try:
+        data = {}
+        if os.path.exists(_VOLUME_HISTORY_PATH):
+            with open(_VOLUME_HISTORY_PATH, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        data[today] = hacim_lot
+        # Son 90 günü tut, eskilerini sil
+        cutoff = (datetime.now() - pd.Timedelta(days=90)).strftime("%Y-%m-%d")
+        data = {k: v for k, v in data.items() if k >= cutoff}
+        with open(_VOLUME_HISTORY_PATH, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        logger.error(f"Hacim geçmişi yazma hatası: {e}")
+
+
+def load_volume_avg(days: int = 30) -> Optional[float]:
+    """Son N günün ortalama hacmini (lot) döndürür."""
+    try:
+        if not os.path.exists(_VOLUME_HISTORY_PATH):
+            return None
+        with open(_VOLUME_HISTORY_PATH, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if not data:
+            return None
+        cutoff = (datetime.now() - pd.Timedelta(days=days)).strftime("%Y-%m-%d")
+        recent = [v for k, v in data.items() if k >= cutoff and v]
+        if not recent:
+            return None
+        return sum(recent) / len(recent)
+    except Exception as e:
+        logger.error(f"Hacim geçmişi okuma hatası: {e}")
         return None

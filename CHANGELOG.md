@@ -4,6 +4,55 @@ Tüm önemli değişiklikler bu dosyada kaydedilir.
 
 ---
 
+## [0.5.0] — 2026-04-10
+
+### Eklenen Özellikler — Tarihsel MB Altın Rezerv Verisi & Sinyal Analizi
+- **Tarihsel Veri Entegrasyonu**: WGC/IMF IFS kaynaklı 11 ülke × 32 çeyreklik dönem (2018-Q1 → 2025-Q4) gömülü veri. Wikipedia güncel snapshot'ları ile birleştirildi.
+- **Sinyal Analiz Paneli (Tab7)**: Merkez bankası hareketlerinden altın yönü sinyali:
+  - Net Alım Momentum — Son N çeyrekte toplam tonaj değişimi
+  - Alıcı/Satıcı Oranı — Alıcı vs satıcı MB dağılımı
+  - Ağırlıklı Talep Endeksi — MB önemine göre ağırlıklı (Çin 3×, Hindistan/Polonya/Türkiye 2×, Rusya 1.5×)
+  - Bileşik Sinyal — Ortalamalı genel yön göstergesi
+- **Yeni Periyot Seçenekleri**: Tab7'de 1a/3a/6a/1y/3y/5y/tümü (eski: 1g/1h kaldırıldı)
+- **Genişletilmiş Ülke Kapsamı**: Tarihsel 11 + güncel 53 ülke
+
+### Yeni Dosyalar
+- `app/historical_reserves.py` — Gömülü WGC/IMF IFS tarihsel veri
+- `app/reserve_signals.py` — Sinyal hesaplama modülü (3 sinyal + bileşik)
+- `tests/test_data_sources.py`, `tests/test_fred_series.py`, `tests/test_imf_api.py`, `tests/test_signals.py`, `tests/check_syntax.py`
+
+### Güncellenen Dosyalar
+- `app/reserve_tracker.py` — build_history_dataframe() yeniden yazıldı, yeni periyotlar
+- `main.py` — Tab7 sinyal paneli, güncel açıklama metinleri, periyot seçici
+
+---
+
+## [0.4.0] — 2026-04-10
+
+### Düzeltmeler (Mobil UX)
+- **Grafik Kilidi**: Sidebar'da "📌 Grafik Kilidi" toggle eklendi. Varsayılan: AÇIK. Mobilde grafiklere dokunma artık yanlışlıkla yakınlaştırma yapmaz. Kaydırma ve tarih değerlerini okuma rahatlaştı.
+- **Grafik Başlık/Araç Çubuğu Çakışması**: Başlık sol kenara sabitlendi (`title_x=0`), üst kenar boşluğu artırıldı (50 → 80 px). Modebar ile çakışma engellendi.
+- **Plotly Modebar**: `select2d`, `lasso2d` araçları kaldırıldı. Plotly logosu gizlendi, `scrollZoom` devre dışı.
+
+### Düzeltmeler (Merkez Bankaları)
+- **"%" Etiket Karışıklığı**: "Rez:" → "Altın Payı:" olarak düzeltildi. "Altın Payı" açıklaması eklendi: "Ülkenin toplam döviz rezervleri içinde altının yüzdesel ağırlığı".
+- **Yetersiz Veri**: Grafik 2 günden az veri varsa tablo formatına düşer. 30 günden az olduğunda bilgilendirme uyarısı gösterilir.
+- **Varsayılan Görünüm**: % Değişim toggle varsayılanı → Kapalı (ton bazlı görünüm). Değişim özeti varsayılan → açık.
+
+### Eklenen Özellikler
+- **GitHub/Fork Gizleme**: Streamlit Cloud'daki GitHub badge, fork butonu ve deploy butonu CSS ile gizlendi.
+- **Streamlit Footer Gizleme**: "Made with Streamlit" footer'ı ve download sekmesi CSS ile gizlendi.
+- **PWA Desteği**: Web App Manifest (`.streamlit/static/manifest.json`) ve meta etiketleri eklendi. Chrome/Safari'de "Ana Ekrana Ekle" seçeneği artık çalışır.
+
+### Dosya Değişiklikleri
+- `main.py` — Grafik kilidi, plotly config, CSS gizleme, PWA meta, MB iyileştirmeler
+- `.streamlit/config.toml` — `enableStaticServing = true`
+- `.streamlit/static/manifest.json` — Yeni (PWA manifest)
+- `ISLEMLER.md` — Oturum 5 kayıtları
+- `TALIMATLAR.md` — §9 yapılacaklar güncellemesi
+
+---
+
 ## [1.0.0] — 2026-04-01
 
 ### Eklenmiş Özellikler

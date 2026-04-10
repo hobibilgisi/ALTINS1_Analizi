@@ -1,0 +1,17 @@
+{
+  "name": "ALTINS1 Analiz",
+  "short_name": "ALTINS1",
+  "description": "Altın sertifikası takip ve sinyal sistemi",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0e1117",
+  "theme_color": "#ffa726",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪙</text></svg>",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

@@ -14,6 +14,144 @@ from app.config import ALTINS1_GRAM_KATSAYI
 
 logger = logging.getLogger(__name__)
 
+# ── Türkçe ay adları (tüm grafikler için merkezi) ─────────────
+_AY_TR = {
+    1: "Oca", 2: "Şub", 3: "Mar", 4: "Nis", 5: "May", 6: "Haz",
+    7: "Tem", 8: "Ağu", 9: "Eyl", 10: "Eki", 11: "Kas", 12: "Ara",
+}
+
+_AY_TR_UZUN = {
+    1: "Ocak", 2: "Şubat", 3: "Mart", 4: "Nisan", 5: "Mayıs", 6: "Haziran",
+    7: "Temmuz", 8: "Ağustos", 9: "Eylül", 10: "Ekim", 11: "Kasım", 12: "Aralık",
+}
+
+# İngilizce → Türkçe ay eşleştirmesi (hover metinlerinde Plotly'nin ürettiği
+# İngilizce ay adlarını yakalamak için)
+_EN_TO_TR = {
+    "Jan": "Oca", "Feb": "Şub", "Mar": "Mar", "Apr": "Nis",
+    "May": "May", "Jun": "Haz", "Jul": "Tem", "Aug": "Ağu",
+    "Sep": "Eyl", "Oct": "Eki", "Nov": "Kas", "Dec": "Ara",
+}
+
+
+def turkce_tarih_ekseni(fig: go.Figure) -> go.Figure:
+    """Plotly figürünün TÜM x-eksenlerindeki tarih etiketlerini Türkçe yapar.
+
+    - Tick etiketlerini Türkçe ay adlarıyla gösterir
+    - Hover metinlerini Türkçe tarih formatına çevirir
+    - Subplots, çoklu x-ekseni ve özel customdata destekler
+
+    Bu fonksiyon her grafiğin SON adımında (tüm trace ekleme / mutasyon
+    işlemlerinden sonra) çağrılmalıdır.
+    """
+    import re
+
+    # ── 1) Tüm trace'lerden tarihleri topla ──────────────────────
+    all_dates = []
+    for trace in fig.data:
+        x = getattr(trace, "x", None)
+        if x is None:
+            continue
+        try:
+            dates = pd.to_datetime(list(x))
+            all_dates.extend(dates.dropna())
+        except Exception:
+            continue  # Bu trace'i atla, fonksiyondan çıkma
+
+    if len(all_dates) < 2:
+        return fig
+
+    min_d = min(all_dates)
+    max_d = max(all_dates)
+    span = (max_d - min_d).days
+
+    # ── 2) Tarih aralığına göre tick sıklığı ve format ───────────
+    if span > 365 * 4:
+        freq, fmt = "YS", lambda d: str(d.year)
+    elif span > 365:
+        freq, fmt = "QS", lambda d: f"{_AY_TR[d.month]} {d.year}"
+    elif span > 120:
+        freq, fmt = "MS", lambda d: f"{_AY_TR[d.month]} {d.year}"
+    elif span > 30:
+        freq, fmt = "2W-MON", lambda d: f"{d.day} {_AY_TR[d.month]}"
+    else:
+        freq, fmt = "W-MON", lambda d: f"{d.day} {_AY_TR[d.month]}"
+
+    ticks = pd.date_range(start=min_d, end=max_d, freq=freq)
+    if len(ticks) < 2:
+        ticks = pd.date_range(start=min_d, end=max_d, periods=min(6, max(2, span)))
+    if len(ticks) == 0:
+        return fig
+
+    tick_vals = ticks.tolist()
+    tick_text = [fmt(d) for d in ticks]
+
+    # ── 3) Tüm x-eksenleri güncelle (xaxis, xaxis2, xaxis3 …) ──
+    layout_dict = fig.to_dict().get("layout", {})
+    xaxis_keys = [k for k in layout_dict if k.startswith("xaxis")]
+    if not xaxis_keys:
+        xaxis_keys = ["xaxis"]
+
+    for xkey in xaxis_keys:
+        fig.update_layout(**{
+            xkey: dict(
+                tickmode="array",
+                tickvals=tick_vals,
+                ticktext=tick_text,
+            )
+        })
+
+    # ── 4) Hover metinlerini Türkçe tarih formatına çevir ───────
+    for trace in fig.data:
+        x = getattr(trace, "x", None)
+        if x is None:
+            continue
+
+        # Zaten customdata olan trace'leri koru (kendi hover mantığı var)
+        if getattr(trace, "customdata", None) is not None:
+            continue
+
+        try:
+            dates = pd.to_datetime(list(x))
+        except Exception:
+            continue
+
+        tr_dates = [
+            f"{d.day} {_AY_TR.get(d.month, '?')} {d.year}"
+            if not pd.isna(d) else ""
+            for d in dates
+        ]
+        trace.customdata = [[td] for td in tr_dates]
+
+        trace_type = trace.__class__.__name__
+        ht = getattr(trace, "hovertemplate", None)
+
+        if ht and "%{x" in str(ht):
+            # Mevcut template'te %{x|...} veya %{x} → %{customdata[0]}
+            ht = re.sub(r"%\{x(\|[^}]*)?\}", "%{customdata[0]}", str(ht))
+            trace.hovertemplate = ht
+        elif trace_type in ("Candlestick", "Ohlc"):
+            trace.hovertemplate = (
+                "<b>%{customdata[0]}</b><br>"
+                "Açılış: %{open:,.2f}<br>"
+                "Yüksek: %{high:,.2f}<br>"
+                "Düşük: %{low:,.2f}<br>"
+                "Kapanış: %{close:,.2f}"
+                "<extra>%{fullData.name}</extra>"
+            )
+        elif ht:
+            # Template var ama %{x} yok — başına Türkçe tarih ekle
+            trace.hovertemplate = "<b>%{customdata[0]}</b><br>" + str(ht)
+        else:
+            # Template yok — varsayılan Türkçe hover
+            trace.hovertemplate = (
+                "<b>%{customdata[0]}</b><br>"
+                "<b>%{fullData.name}</b>: %{y:,.2f}"
+                "<extra></extra>"
+            )
+
+    return fig
+
 
 def create_price_chart(
     df: pd.DataFrame,

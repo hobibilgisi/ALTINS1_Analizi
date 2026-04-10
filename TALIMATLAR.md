@@ -252,12 +252,15 @@ python-dateutil>=2.8.0   # Tarih işlemleri
 
 ### Öncelikli (Kısa Vadeli)
 - [ ] Vercel veya Streamlit Cloud'a web deployment
-- [ ] Merkez bankası altın rezerv verilerini otomatik çekme
+- [ ] GitHub repo'yu **private** yaparak fork/kaynak kod erişimini engelleme
+- [ ] Ek sinyal yöntemleri değerlendirme (MB momentum hızlanması, fiyat korelasyonu vb.)
 
 ### Orta Vadeli
 - [ ] Otomatik periyodik yenileme ve geçmiş veri saklama (SQLite/CSV)
 - [ ] Telegram bildirim entegrasyonu (opsiyonel)
 - [ ] ALTINS1 için alternatif BIST veri kaynağı araştırma
+- [ ] IMF web scraping otomatik aylık veri güncellemesi (`imf.org/external/np/fin/tad/exfin2.aspx`)
+- [ ] MB alım trendi vs altın fiyat korelasyonu analizi (Tab7 içinde)
 
 ### Tamamlananlar
 - [x] ALTINS1 BIST fiyat kaynağı bulma → Mynet Finans (82.33 TL, 419 bar tarihsel)
@@ -273,6 +276,14 @@ python-dateutil>=2.8.0   # Tarih işlemleri
 - [x] Dinamik alım eşikleri (tarihsel ortalamaya bağlı)
 - [x] Günlük sinyal özeti e-posta bildirim sistemi
 - [x] TL/USD para birimi toggle (Tab1, Tab3, Tab6)
+- [x] Mobil grafik zoom/pan sorunu — Grafik Kilidi toggle + dragmode=False (Oturum 5)
+- [x] Grafik başlığı/araç çubuğu çakışması — title pozisyon ve margin düzeltmesi (Oturum 5)
+- [x] MB verileri iyileştirme — "Altın Payı" etiketi, az veri uyarısı, tablo fallback (Oturum 5)
+- [x] GitHub fork butonu ve Streamlit footer gizleme — CSS ile (Oturum 5)
+- [x] PWA desteği — manifest.json, meta etiketleri, ana ekrana ekleme (Oturum 5)
+- [x] Merkez bankası tarihsel altın rezerv verisi — WGC/IMF IFS 11 ülke, 2018-2025 (Oturum 5)
+- [x] MB sinyal analiz sistemi — 3 sinyal + bileşik, Tab7 paneli (Oturum 5)
+- [x] MB "Altın Alım Gücü" metriği → Ağırlıklı Talep Endeksi olarak implement edildi (Oturum 5)
 
 ---
 

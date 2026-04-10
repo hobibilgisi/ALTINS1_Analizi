@@ -1,0 +1,29 @@
+# ── ALTINS1 Analiz — Streamlit Yapılandırması ──────────────────
+# Bu dosya Streamlit'in sunucu, tema ve tarayıcı ayarlarını yönetir.
+# Python API (st.set_page_config) ile kontrol edilemeyen ayarlar burada tanımlıdır.
+# Öncelik sırası: CLI flag > config.toml > varsayılan
+
+[server]
+port = 8501
+headless = false                   # Tarayıcıyı otomatik aç
+fileWatcherType = "auto"           # Dosya değişikliklerini izle (geliştirme kolaylığı)
+runOnSave = false                  # Kayıtta otomatik yeniden çalıştırma kapalı
+maxUploadSize = 10                 # Maks dosya yükleme boyutu (MB)
+enableStaticServing = true         # .streamlit/static/ klasöründen dosya sunumu (PWA manifest vb.)
+
+[theme]
+base = "dark"                      # Plotly plotly_dark şablonuyla uyumlu koyu tema
+primaryColor = "#ffa726"           # Altın turuncu — widget vurgu rengi
+backgroundColor = "#0e1117"        # Ana arka plan (Streamlit dark varsayılanı)
+secondaryBackgroundColor = "#262730"  # Sidebar ve kart arka planı
+textColor = "#fafafa"              # Ana metin rengi
+font = "sans serif"
+
+[browser]
+gatherUsageStats = false           # Streamlit'e kullanım verisi gönderme
+
+[client]
+toolbarMode = "minimal"            # Sağ üst araç çubuğunu sadeleştir
+
+[runner]
+magicEnabled = false               # Magic mode kapalı — beklenmeyen render'ları önler

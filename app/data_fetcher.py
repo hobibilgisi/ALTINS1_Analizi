@@ -446,6 +446,7 @@ def _save_volume_history(hacim_lot: float) -> None:
     """Günlük hacim verisini tarih bazlı JSON dosyasına ekler."""
     today = datetime.now().strftime("%Y-%m-%d")
     try:
+        os.makedirs(os.path.dirname(_VOLUME_HISTORY_PATH), exist_ok=True)
         data = {}
         if os.path.exists(_VOLUME_HISTORY_PATH):
             with open(_VOLUME_HISTORY_PATH, "r", encoding="utf-8") as f:

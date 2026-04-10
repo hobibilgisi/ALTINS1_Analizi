@@ -5,7 +5,7 @@
 
 [server]
 port = 8501
-headless = false                   # Tarayıcıyı otomatik aç
+headless = true                    # Cloud'da tarayıcı açılmaz
 fileWatcherType = "auto"           # Dosya değişikliklerini izle (geliştirme kolaylığı)
 runOnSave = false                  # Kayıtta otomatik yeniden çalıştırma kapalı
 maxUploadSize = 10                 # Maks dosya yükleme boyutu (MB)

@@ -48,13 +48,15 @@ from app.config import EmailConfig
 
 # ── Logging ────────────────────────────────────────────────────
 os.makedirs("logs", exist_ok=True)
+_log_handlers = [logging.StreamHandler()]
+try:
+    _log_handlers.append(logging.FileHandler("logs/app.log", encoding="utf-8"))
+except OSError:
+    pass  # Cloud ortamda dosya yazılamayabilir
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    handlers=[
-        logging.FileHandler("logs/app.log", encoding="utf-8"),
-        logging.StreamHandler(),
-    ],
+    handlers=_log_handlers,
 )
 logger = logging.getLogger(__name__)
 

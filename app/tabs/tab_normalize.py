@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 import streamlit as st
 
-from app.charts import create_overlay_chart
+from app.charts import create_overlay_chart, create_correlation_chart
 from app.ui_helpers import apply_chart_font, PLOTLY_CONFIG
 
 if TYPE_CHECKING:
@@ -89,3 +89,40 @@ def render(ctx: "TabContext") -> None:
         )
     else:
         st.warning("Normalize karşılaştırma için yeterli tarihsel veri bulunamadı.")
+
+    # ── Borsa-Altın Korelasyonu Grafiği ────────────────────────
+    st.markdown("---")
+    st.subheader("📈 Borsa-Altın Korelasyonu")
+    st.caption("BIST 100, Gram Altın TL ve ALTINS1 normalize karşılaştırması — borsa yönünün altın sertifikasına etkisini gösterir.")
+
+    bist100_hist_series = ctx.series.bist100
+
+    _corr_series = {}
+    if altins1_hist_series is not None and len(altins1_hist_series) > 0:
+        _corr_series["altins1"] = altins1_hist_series
+    if gram_gold_hist_series is not None and len(gram_gold_hist_series) > 0:
+        _corr_series["gram"] = gram_gold_hist_series
+    if bist100_hist_series is not None and len(bist100_hist_series) > 0:
+        _corr_series["bist100"] = bist100_hist_series
+
+    if len(_corr_series) >= 2:
+        corr_start = max(s.index.min() for s in _corr_series.values())
+        corr_end = min(s.index.max() for s in _corr_series.values())
+
+        c_a1 = altins1_hist_series.loc[corr_start:corr_end] if "altins1" in _corr_series else None
+        c_gt = gram_gold_hist_series.loc[corr_start:corr_end] if "gram" in _corr_series else None
+        c_bist = bist100_hist_series.loc[corr_start:corr_end] if "bist100" in _corr_series else None
+
+        fig_corr = create_correlation_chart(
+            altins1_series=c_a1,
+            gram_gold_series=c_gt,
+            bist100_series=c_bist,
+        )
+        apply_chart_font(fig_corr, ctx.font_size, ctx.chart_height, ctx.grafik_kilidi)
+        st.plotly_chart(fig_corr, width="stretch", config=PLOTLY_CONFIG)
+        st.caption(
+            f"📅 Ortak aralık: {corr_start.strftime('%d.%m.%Y')} — {corr_end.strftime('%d.%m.%Y')} | "
+            f"Tüm seriler ilk değere göre normalize edilmiştir (başlangıç = 0%)."
+        )
+    else:
+        st.warning("Borsa-Altın korelasyon grafiği için yeterli veri bulunamadı.")

@@ -13,9 +13,13 @@ import logging
 import os
 import sys
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 import streamlit as st
+from streamlit_autorefresh import st_autorefresh
+
+_TZ_ISTANBUL = ZoneInfo("Europe/Istanbul")
 
 # Proje kök dizinini path'e ekle
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -83,7 +87,16 @@ with st.sidebar:
     if st.button("🔄 Verileri Yenile", width="stretch"):
         st.cache_data.clear()
         st.rerun()
-    st.caption(f"Son güncelleme: {datetime.now().strftime('%H:%M:%S')}")
+    _now_tr = datetime.now(_TZ_ISTANBUL)
+    st.caption(f"Son güncelleme: {_now_tr.strftime('%H:%M:%S')}")
+
+    # ── Seans açıkken otomatik yenileme (her 2 dakikada bir) ──
+    _auto_refresh_enabled = st.toggle(
+        "⏱️ Otomatik Yenile (2 dk)", value=True, key="auto_refresh",
+        help="Seans açıkken sayfa her 2 dakikada otomatik güncellenir.",
+    )
+    if _auto_refresh_enabled and is_bist_open():
+        st_autorefresh(interval=2 * 60 * 1000, key="bist_autorefresh")
 
     st.markdown("---")
     # Piyasa Verileri için yer ayır — veriler yüklendikten sonra doldurulacak
@@ -213,7 +226,11 @@ st.markdown(f"""
 # ── Veri Çekme (cache'li) ─────────────────────────────────────
 @st.cache_data(ttl=config.cache_ttl_sec)
 def load_prices():
-    return fetch_current_prices()
+    prices = fetch_current_prices()
+    # Başarısız sonuçları cache'leme — bir sonraki render'da tekrar dene
+    if not prices.get("altins1_fiyat") or not prices.get("gram_altin_tl"):
+        st.cache_data.clear()
+    return prices
 
 
 @st.cache_data(ttl=config.cache_ttl_sec)

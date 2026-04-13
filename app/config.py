@@ -56,6 +56,7 @@ YF_SYMBOLS = {
     "ons_gumus_usd": "SI=F",      # Silver Futures (USD)
     "dolar_tl": "USDTRY=X",       # USD/TRY
     "faiz_us10y": "^TNX",         # ABD 10 Yıllık Tahvil Faizi (%)
+    "bist100": "XU100.IS",        # BIST 100 Endeksi
 }
 
 # ── TradingView sembolleri (Tarihsel + yedek) ──────────────────
@@ -162,7 +163,7 @@ class AppConfig:
     page_icon: str = "🪙"
     refresh_interval_sec: int = 60       # Veri yenileme aralığı (saniye)
     history_days: int = 365              # Tarihsel veri çekme süresi (gün)
-    cache_ttl_sec: int = 300             # Önbellek süresi (saniye)
+    cache_ttl_sec: int = 120             # Önbellek süresi (saniye)
     price_cache_file: str = "data/cache/last_prices.json"  # Son geçerli fiyat dosyası
     log_file: str = "logs/app.log"
 

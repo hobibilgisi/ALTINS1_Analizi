@@ -17,6 +17,7 @@ import os
 import re
 from datetime import datetime, time
 from typing import Optional, Dict, Any, List, Tuple
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 import requests
@@ -278,7 +279,11 @@ def fetch_current_prices() -> Dict[str, Any]:
         result["kaynak_truncgil"] = False
 
     # ── 3) yfinance: ons altın + dolar/TL ───────────────────
+    # Sadece anlık fiyatlaması gereken sembolleri çek (tarihsel-only olanları atla)
+    _yf_realtime = {"ons_altin_usd", "ons_gumus_usd", "dolar_tl", "faiz_us10y"}
     for key, symbol in YF_SYMBOLS.items():
+        if key not in _yf_realtime:
+            continue
         try:
             ticker = yf.Ticker(symbol)
             hist = ticker.history(period="5d")
@@ -377,15 +382,20 @@ def fetch_tv_history(
 
 # ── BIST Seans Durumu ──────────────────────────────────────────
 
+_TZ_ISTANBUL = ZoneInfo("Europe/Istanbul")
+
+
 def is_bist_open(now: Optional[datetime] = None) -> bool:
     """BIST seansının açık olup olmadığını kontrol eder.
 
-    Hafta içi 10:00 - 18:10 arası açık.
+    Hafta içi 10:00 - 18:10 arası açık (Türkiye saati).
     Hafta sonu (cumartesi=5, pazar=6) kapalı.
     Resmi tatil kontrolü yapılmaz (sadece gün/saat tabanlı).
     """
     if now is None:
-        now = datetime.now()
+        now = datetime.now(_TZ_ISTANBUL)
+    elif now.tzinfo is None:
+        now = now.replace(tzinfo=_TZ_ISTANBUL)
     # Hafta sonu kapalı
     if now.weekday() >= 5:
         return False
@@ -408,7 +418,7 @@ def save_prices_to_cache(prices: Dict[str, Any]) -> None:
             k: v for k, v in prices.items()
             if isinstance(v, (int, float, str, bool, type(None)))
         }
-        cache_data["_cache_time"] = datetime.now().isoformat()
+        cache_data["_cache_time"] = datetime.now(_TZ_ISTANBUL).isoformat()
         with open(_PRICE_CACHE_PATH, "w", encoding="utf-8") as f:
             json.dump(cache_data, f, ensure_ascii=False, indent=2)
         logger.info("Fiyat cache dosyasına kaydedildi")

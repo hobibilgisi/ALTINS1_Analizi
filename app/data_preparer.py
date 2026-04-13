@@ -24,6 +24,7 @@ class PreparedSeries:
     ons_silver_usd: Optional[pd.Series] = None
     gram_silver_tl: Optional[pd.Series] = None
     faiz: Optional[pd.Series] = None
+    bist100: Optional[pd.Series] = None
     spread: Optional[pd.Series] = None
 
 
@@ -32,7 +33,7 @@ def _normalize_index(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     idx = pd.to_datetime(df.index)
     if idx.tz is not None:
-        idx = idx.tz_localize(None)
+        idx = idx.tz_convert(None)
     df.index = idx.normalize()
     return df[~df.index.duplicated(keep="last")]
 
@@ -87,6 +88,12 @@ def prepare_all_series(history: dict, altins1_hist, prices: dict) -> PreparedSer
         faiz = _normalize_index(history["faiz_us10y"])
         if "Close" in faiz.columns and not faiz["Close"].dropna().empty:
             result.faiz = faiz["Close"]
+
+    # ── BIST 100 Endeksi ───────────────────────────────────────
+    if history.get("bist100") is not None:
+        bist = _normalize_index(history["bist100"])
+        if "Close" in bist.columns and not bist["Close"].dropna().empty:
+            result.bist100 = bist["Close"]
 
     # ── Anlık veriyle bugünü eşitle ────────────────────────────
     today = pd.Timestamp(datetime.now().date())

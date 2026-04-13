@@ -468,7 +468,7 @@ def create_overlay_chart(
                 x=norm.index, y=norm.values,
                 mode="lines",
                 name="ABD 10Y Faiz (%)",
-                line=dict(color="#ef5350", width=2, dash="dash"),
+                line=dict(color="#ef5350", width=2),
             )
         )
 
@@ -476,6 +476,58 @@ def create_overlay_chart(
                       yaxis=dict(showticklabels=False))
     return fig
 
+def create_correlation_chart(
+    altins1_series: Optional[pd.Series] = None,
+    gram_gold_series: Optional[pd.Series] = None,
+    bist100_series: Optional[pd.Series] = None,
+) -> go.Figure:
+    """BIST100, Gram Altın TL ve ALTINS1 normalize karşılaştırma grafiği.
+
+    Tüm seriler ilk değere göre % değişim olarak gösterilir.
+    Borsa yönü ile altın sertifikası arasındaki korelasyonu görselleştirir.
+    """
+    fig = go.Figure()
+
+    def _normalize(s: pd.Series) -> pd.Series:
+        first = s.dropna().iloc[0] if len(s.dropna()) > 0 else 1
+        return ((s / first) - 1) * 100
+
+    if bist100_series is not None and len(bist100_series) > 0:
+        norm = _normalize(bist100_series)
+        fig.add_trace(
+            go.Scatter(
+                x=norm.index, y=norm.values,
+                mode="lines",
+                name="BIST 100",
+                line=dict(color="#e53935", width=2.5),
+            )
+        )
+
+    if gram_gold_series is not None and len(gram_gold_series) > 0:
+        norm = _normalize(gram_gold_series)
+        fig.add_trace(
+            go.Scatter(
+                x=norm.index, y=norm.values,
+                mode="lines",
+                name="Gram Altın TL",
+                line=dict(color="#ffa726", width=2.5),
+            )
+        )
+
+    if altins1_series is not None and len(altins1_series) > 0:
+        norm = _normalize(altins1_series)
+        fig.add_trace(
+            go.Scatter(
+                x=norm.index, y=norm.values,
+                mode="lines",
+                name="ALTINS1",
+                line=dict(color="#42a5f5", width=2.5),
+            )
+        )
+
+    apply_base_layout(fig, title="📈 Borsa-Altın Korelasyonu (Normalize)",
+                      yaxis=dict(showticklabels=False))
+    return fig
 
 def create_comparison_chart(
     altins1_series: pd.Series,

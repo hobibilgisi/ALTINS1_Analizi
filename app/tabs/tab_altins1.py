@@ -7,7 +7,6 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from app.charts import create_altins1_vs_expected_chart
-from app.config import ALTINS1_GRAM_KATSAYI
 from app.ui_helpers import add_ema_traces, apply_chart_font, ema_checkboxes, PLOTLY_CONFIG
 
 if TYPE_CHECKING:
@@ -18,6 +17,8 @@ def render(ctx: "TabContext") -> None:
     """ALTINS1 Gerçek vs Beklenen karşılaştırma grafiğini çizer."""
     altins1_hist_series = ctx.series.altins1
     gram_gold_hist_series = ctx.series.gram_gold_tl
+    beklenen_hist_series = ctx.series.beklenen
+    spread_hist_series = ctx.series.spread
     ons_gold_tl_hist_series = ctx.series.ons_gold_tl
     ons_usd_hist_series = ctx.series.ons_usd
     usdtry_hist_series = ctx.series.usdtry
@@ -33,12 +34,13 @@ def render(ctx: "TabContext") -> None:
         st.markdown("**EMA — GR (Gram Altın)**")
         _t1_ema_gr = ema_checkboxes(st, "t1gr", default_on=False)
 
-    if altins1_hist_series is not None and gram_gold_hist_series is not None:
+    if altins1_hist_series is not None and gram_gold_hist_series is not None and beklenen_hist_series is not None:
         # Ortak indeks bul
         common = altins1_hist_series.index.intersection(gram_gold_hist_series.index)
         if len(common) > 0:
             a1 = altins1_hist_series.loc[common]
             gt = gram_gold_hist_series.loc[common]
+            bek = beklenen_hist_series.loc[beklenen_hist_series.index.intersection(common)]
             ons_for_chart = None
 
             # Ons altın serisini hazırla (ortak aralıkta)
@@ -52,6 +54,7 @@ def render(ctx: "TabContext") -> None:
                 ci = a1.index.intersection(usd_rate.index)
                 a1 = a1.loc[ci] / usd_rate.loc[ci]
                 gt = gt.loc[ci] / usd_rate.loc[ci]
+                bek = bek.loc[bek.index.intersection(ci)] / usd_rate.loc[ci]
                 # Ons: doğrudan USD serisini kullan
                 if ons_usd_hist_series is not None:
                     ons_common_usd = ons_usd_hist_series.index.intersection(ci)
@@ -64,6 +67,7 @@ def render(ctx: "TabContext") -> None:
             )
             fig_vs = create_altins1_vs_expected_chart(
                 a1, gt,
+                beklenen_series=bek,
                 currency=tab1_ccy,
             )
             for _tr in fig_vs.data:
@@ -71,9 +75,11 @@ def render(ctx: "TabContext") -> None:
                     _tr.visible = False
                 if ("%1 Gr" in _tr.name or "Beklenen" in _tr.name) and not _show_t1_beklenen:
                     _tr.visible = False
-            beklenen_series = gt * ALTINS1_GRAM_KATSAYI
-            # Makas oranı trace — hover'da her tarihte görünsün, çizgi en üstte beyaz
-            _makas_series = (a1 - beklenen_series) / beklenen_series * 100
+            # Makas oranı: merkezi spread serisini kullan (TL modunda)
+            if tab1_ccy == "TL" and spread_hist_series is not None:
+                _makas_series = spread_hist_series.loc[spread_hist_series.index.intersection(common)]
+            else:
+                _makas_series = (a1 - bek) / bek * 100
             _makas_series_int = _makas_series.round(0).astype(int)
             # Son günü sağa uzat (gelecek tarih göstermeden)
             _last_date = _makas_series.index[-1]
@@ -94,7 +100,7 @@ def render(ctx: "TabContext") -> None:
                 ),
             )
             add_ema_traces(fig_vs, a1, _t1_ema_s1, label_prefix="s1 ", line_dash="dot")
-            add_ema_traces(fig_vs, beklenen_series, _t1_ema_gr, label_prefix="gr ")
+            add_ema_traces(fig_vs, bek, _t1_ema_gr, label_prefix="gr ")
             apply_chart_font(fig_vs, ctx.font_size, ctx.chart_height, ctx.grafik_kilidi)
             st.plotly_chart(fig_vs, width="stretch", config=PLOTLY_CONFIG)
         else:

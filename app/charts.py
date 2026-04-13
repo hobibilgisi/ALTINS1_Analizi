@@ -325,6 +325,7 @@ def create_spread_chart(
 def create_altins1_vs_expected_chart(
     altins1_series: pd.Series,
     gram_gold_tl_series: pd.Series,
+    beklenen_series: Optional[pd.Series] = None,
     ons_gold_series: Optional[pd.Series] = None,
     gram_gold_raw_series: Optional[pd.Series] = None,
     currency: str = "TL",
@@ -347,7 +348,11 @@ def create_altins1_vs_expected_chart(
     else:
         fig = go.Figure()
 
-    beklenen = gram_gold_tl_series * ALTINS1_GRAM_KATSAYI
+    # Beklenen seri dışarıdan gelmediyse geriye uyumluluk için hesapla
+    if beklenen_series is None:
+        beklenen = gram_gold_tl_series * ALTINS1_GRAM_KATSAYI
+    else:
+        beklenen = beklenen_series
 
     fig.add_trace(
         go.Scatter(

@@ -9,7 +9,7 @@ from typing import Optional
 
 import pandas as pd
 
-from app.config import TROY_OUNCE_GRAM
+from app.config import TROY_OUNCE_GRAM, ALTINS1_GRAM_KATSAYI
 from app.calculator import calculate_spread_series
 
 
@@ -21,6 +21,7 @@ class PreparedSeries:
     ons_usd: Optional[pd.Series] = None
     usdtry: Optional[pd.Series] = None
     altins1: Optional[pd.Series] = None
+    beklenen: Optional[pd.Series] = None
     ons_silver_usd: Optional[pd.Series] = None
     gram_silver_tl: Optional[pd.Series] = None
     faiz: Optional[pd.Series] = None
@@ -106,10 +107,11 @@ def prepare_all_series(history: dict, altins1_hist, prices: dict) -> PreparedSer
         result.altins1[today] = live_s1
         result.altins1 = result.altins1.sort_index()
 
-    # ── Tarihsel makas ─────────────────────────────────────────
+    # ── Beklenen ALTINS1 + Tarihsel makas ──────────────────────
     if result.altins1 is not None and result.gram_gold_tl is not None:
         sp_common = result.altins1.index.intersection(result.gram_gold_tl.index)
         if len(sp_common) > 0:
+            result.beklenen = result.gram_gold_tl.loc[sp_common] * ALTINS1_GRAM_KATSAYI
             result.spread = calculate_spread_series(
                 result.altins1.loc[sp_common],
                 result.gram_gold_tl.loc[sp_common],

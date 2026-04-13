@@ -12,7 +12,7 @@ from typing import Dict, List
 # PATCH: Hata düzeltme
 # BUILD: Her değişiklik için artan 4 basamaklı sayaç (0001, 0002, ...)
 APP_VERSION = "4.4.0"
-APP_BUILD = "0027"
+APP_BUILD = "0028"
 APP_VERSION_FULL = f"{APP_VERSION}.{APP_BUILD}"
 APP_VERSION_DATE = "2026-04-14"
 APP_VERSION_NOTES = [

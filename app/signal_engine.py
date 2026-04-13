@@ -48,10 +48,10 @@ def evaluate_signal(spread_pct: float, thresholds: Optional[SignalThresholds] = 
 def generate_signal_message(signal_type: SignalType, spread_pct: float) -> str:
     """Sinyal tipine göre kullanıcıya gösterilecek mesaj üretir."""
     messages = {
-        SignalType.STRONG_BUY: f"🟢 GÜÇLÜ ALIM SİNYALİ! Makas: %{spread_pct:.2f} — ALTINS1, gram altından ucuz!",
-        SignalType.BUY: f"🟡 ALIM SİNYALİ. Makas: %{spread_pct:.2f} — ALTINS1, gram altına çok yakın.",
+        SignalType.STRONG_BUY: f"🟢 GÜÇLÜ ALIM SİNYALİ! Makas: %{spread_pct:.2f} — Makas tarihsel ortalamanın çok altında, ALTINS1 görece ucuz!",
+        SignalType.BUY: f"🟡 ALIM SİNYALİ. Makas: %{spread_pct:.2f} — Makas ortalamanın altında, alım fırsatı olabilir.",
         SignalType.NEUTRAL: f"⚪ NÖTR. Makas: %{spread_pct:.2f} — Normal aralıkta.",
-        SignalType.SELL: f"🟠 SATIM SİNYALİ. Makas: %{spread_pct:.2f} — ALTINS1 primli, satış düşünülebilir.",
-        SignalType.STRONG_SELL: f"🔴 GÜÇLÜ SATIM SİNYALİ! Makas: %{spread_pct:.2f} — ALTINS1 aşırı primli!",
+        SignalType.SELL: f"🟠 SATIM SİNYALİ. Makas: %{spread_pct:.2f} — Makas ortalamanın üstünde, satış düşünülebilir.",
+        SignalType.STRONG_SELL: f"🔴 GÜÇLÜ SATIM SİNYALİ! Makas: %{spread_pct:.2f} — Makas tarihsel ortalamanın çok üstünde, ALTINS1 aşırı primli!",
     }
     return messages.get(signal_type, "Sinyal değerlendirilemedi.")

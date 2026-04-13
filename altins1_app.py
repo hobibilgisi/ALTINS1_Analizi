@@ -72,6 +72,8 @@ st.set_page_config(
 # ── PWA Desteği (Ana Ekrana Ekleme) ────────────────────────────
 st.markdown("""
 <link rel="manifest" href="./static/manifest.json">
+<link rel="apple-touch-icon" href="./static/icon-192.png">
+<link rel="icon" type="image/x-icon" href="./static/favicon.ico">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -81,7 +83,8 @@ st.markdown("""
 
 # ── Sidebar ────────────────────────────────────────────────────
 with st.sidebar:
-    st.title("🪙 ALTINS1 Analiz")
+    st.image("static/icon-128.png", width=80)
+    st.title("ALTINS1 Analiz")
     st.markdown("---")
 
     if st.button("🔄 Verileri Yenile", width="stretch"):

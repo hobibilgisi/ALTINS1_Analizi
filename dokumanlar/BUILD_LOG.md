@@ -30,3 +30,4 @@ Format: `BUILD | TARİH | VERSİYON | AÇIKLAMA | GIT HASH`
 | 0021 | 2026-04-13 | 4.4.0 | BUILD numarası sistemi eklendi | — |
 | 0022 | 2026-04-13 | 4.4.0 | 1 dosya değişikliği | c42bccf |
 | 0023 | 2026-04-13 | 4.4.0 | 5 dosya değişikliği | 9b1a29b |
+| 0024 | 2026-04-13 | 4.4.0 | 15 dosya değişikliği | 6b766ae |

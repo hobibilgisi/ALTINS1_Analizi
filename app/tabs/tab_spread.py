@@ -42,11 +42,24 @@ def render(ctx: "TabContext") -> None:
         # İstatistikler
         stats = spread_statistics(spread_hist)
 
+        # Std seviye etiketi
+        _std_val = stats.get("std")
+        if _std_val is not None:
+            if _std_val < 3:
+                _std_label = "Düşük"
+            elif _std_val < 7:
+                _std_label = "Normal"
+            else:
+                _std_label = "Yüksek"
+            _std_display = f"{_std_val} ({_std_label})"
+        else:
+            _std_display = None
+
         _stat_items = [
             ("Güncel", stats.get("guncel"), "%", "Şu anki makas oranı. ALTINS1'in beklenen fiyattan yüzde kaç uzakta olduğunu gösterir."),
             ("Ortalama", stats.get("ortalama"), "%", "Seçilen dönemdeki tüm günlerin makas ortalaması. Genel eğilimi gösterir."),
             ("Medyan", stats.get("medyan"), "%", "Makas değerlerinin tam ortasındaki değer. Uç değerlerden etkilenmez, ortalamadan daha güvenilir bir göstergedir."),
-            ("Std", stats.get("std"), "", "Standart Sapma — makas değerlerinin ne kadar dalgalandığını gösterir. Düşükse piyasa sakin, yüksekse dalgalıdır."),
+            ("Std", _std_display, "", "Standart Sapma — makas değerlerinin ne kadar dalgalandığını gösterir. Düşük (<3): sakin piyasa | Normal (3-7): olağan dalgalanma | Yüksek (>7): çok dalgalı piyasa."),
             ("Min", stats.get("min"), "%", "Dönem içinde makas oranının düştüğü en düşük değer."),
             ("Max", stats.get("max"), "%", "Dönem içinde makas oranının çıktığı en yüksek değer."),
         ]

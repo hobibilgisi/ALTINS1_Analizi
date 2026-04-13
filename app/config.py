@@ -10,13 +10,14 @@ from typing import Dict, List
 # MAJOR: Köklü değişiklik (eski ile uyumsuz)
 # MINOR: Yeni özellik (geriye uyumlu)
 # PATCH: Hata düzeltme
-APP_VERSION = "1.1.0"
+APP_VERSION = "1.3.0"
 APP_VERSION_DATE = "2026-04-13"
 APP_VERSION_NOTES = [
     "Tab modül refactoring — her tab bağımsız modül (app/tabs/)",
     "altins1_app.py orkestratöre dönüştürüldü (~1700 → 555 satır)",
     "Type hints eklendi (ui_helpers + tab modülleri)",
     "Mobil UX iyileştirmeleri (legend, tab wrap, rezerv grafiği)",
+    "SemVer versiyon sistemi eklendi",
 ]
 
 # ── Troy Ounce sabiti ──────────────────────────────────────────

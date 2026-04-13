@@ -5,14 +5,15 @@ Versiyon formatı: **SemVer** (MAJOR.MINOR.PATCH)
 
 ---
 
-## [1.1.0] — 2026-04-13
+## [1.3.0] — 2026-04-13
 
 ### Yapısal Refactoring — Tab Modül Sistemi
 - **Tab modülleri**: 8 tab `app/tabs/` paketine çıkarıldı. Her tab bağımsız `render()` fonksiyonu ile çalışır.
 - **TabContext dataclass**: Tab modüllerine ortak veri (seriler, fiyatlar, eşikler, UI ayarları) taşır.
 - **altins1_app.py**: ~1,700 satırdan 555 satıra düşürüldü (%67 azalma). Artık saf orkestratör.
 - **Type hints**: `ui_helpers.py` ve tüm tab modüllerine tip belirteçleri eklendi.
-- **Versiyon sistemi**: SemVer (MAJOR.MINOR.PATCH) `config.py`'ye eklendi.
+- **SemVer versiyon sistemi**: `APP_VERSION`, `APP_VERSION_DATE`, `APP_VERSION_NOTES` → `config.py`
+- **Güncelleme Notu**: Footer'da açılır güncelleme notu paneli eklendi.
 
 ### Mobil UX İyileştirmeleri
 - Grafik legendı mobilde grafik altına taşındı
@@ -22,6 +23,7 @@ Versiyon formatı: **SemVer** (MAJOR.MINOR.PATCH)
 ### Dokümantasyon
 - `MIMARI_RAPOR.md` oluşturuldu ve güncellendi
 - MD dosyaları `dokumanlar/` klasörüne taşındı
+- CHANGELOG versiyonları ISLEMLER.md ile eşleştirilerek düzeltildi
 
 ### Yeni Dosyalar
 - `app/tabs/__init__.py` — TabContext dataclass
@@ -33,13 +35,12 @@ Versiyon formatı: **SemVer** (MAJOR.MINOR.PATCH)
 - `app/tabs/tab_news.py` — Haberler
 - `app/tabs/tab_reserves.py` — MB Rezervleri + Sinyaller
 - `app/tabs/tab_guide.py` — Bilgi Rehberi
-- `app/ui_helpers.py` — UI yardımcı fonksiyonları (mevcut koddan ayırma)
-- `app/data_preparer.py` — Veri hazırlama modülü (mevcut koddan ayırma)
+- `app/ui_helpers.py`, `app/data_preparer.py` — Mevcut koddan ayrıştırma
 - `dokumanlar/MIMARI_RAPOR.md` — Teknik mimari raporu
 
 ---
 
-## [1.0.2] — 2026-04-10
+## [1.2.0] — 2026-04-10
 
 ### Eklenen Özellikler — Tarihsel MB Altın Rezerv Verisi & Sinyal Analizi
 - **Tarihsel Veri Entegrasyonu**: WGC/IMF IFS kaynaklı 11 ülke × 32 çeyreklik dönem (2018-Q1 → 2025-Q4) gömülü veri. Wikipedia güncel snapshot'ları ile birleştirildi.
@@ -62,7 +63,7 @@ Versiyon formatı: **SemVer** (MAJOR.MINOR.PATCH)
 
 ---
 
-## [1.0.1] — 2026-04-10
+## [1.1.0] — 2026-04-10
 
 ### Düzeltmeler (Mobil UX)
 - **Grafik Kilidi**: Sidebar'da "📌 Grafik Kilidi" toggle eklendi. Varsayılan: AÇIK. Mobilde grafiklere dokunma artık yanlışlıkla yakınlaştırma yapmaz. Kaydırma ve tarih değerlerini okuma rahatlaştı.
@@ -162,21 +163,52 @@ altins1_analiz/
 
 ---
 
-## Gelecek Sürümler (Roadmap)
+## Geçmiş Sürümler (Roadmap)
 
-### v1.1.0
+### v1.4.0 (Planlı)
 - [ ] TCMB EVDS API entegrasyonu (otomatik merkez bankası verisi)
 - [ ] Otomatik periyodik yenileme (cron / APScheduler)
-- [ ] Vercel/Railway deployment hazırlığı
 - [ ] Dark/Light tema seçeneği
 - [ ] Petrol (Brent) entegrasyonu
 
-### v1.2.0
+### v2.0.0 (Planlı)
 - [ ] WebSocket gerçek zamanlı güncellemeler
 - [ ] Veritabanı (SQLite/PostgreSQL) — tarihsel veri saklama
 - [ ] Export (CSV, PDF rapor)
 - [ ] Slack/Telegram bot entegrasyonu
 - [ ] Kullanıcı tercihleri (profil, eşik özelleştirme)
+
+---
+
+## Ön Sürümler (Pre-release)
+
+### [0.3.0] — 2026-03-29
+- Gümüş (SI=F) ve GLDTR.IS fon entegrasyonu → 4 tab’dan 7 tab’a
+- TL/USD para birimi toggle (Tab1, Tab3)
+- EMA desteği (20/50/100/200 günlük)
+- Tüm grafiklerde checkbox kontrolleri
+- Günlük sinyal özeti e-posta bildirim sistemi (SMTP)
+- Günlük + haftalık haber bölümleri, HTML temizliği
+- Dinamik alım eşikleri (tarihsel ortalamaya bağlı)
+- Kümülatif makas ortalaması
+
+### [0.2.1] — 2026-03-29
+- Mesai dışı veri görüntüleme (disk cache fallback)
+- Timezone uyumsuzluğu düzeltmesi (tz-aware → tz-naive normalize)
+- Tarihsel makas tarih örtüşme düzeltmesi
+
+### [0.2.0] — 2026-03-27
+- ALTINS1 BIST fiyat kaynağı bulundu: Mynet Finans (anlık + 419 bar tarihsel)
+- Makas formülü: (Gerçek – Beklenen) / Beklenen × 100
+- Sinyal eşikleri: Güçlü Alım ≤%5, Alım ≤%15, Satım ≥%35, Güçlü Satım ≥%50
+- 4 tab dashboard (ALTINS1 vs Beklenen, Makas, Normalize, Ons Altın)
+- 5 dosya güncellendi (config, data_fetcher, calculator, charts, main)
+
+### [0.1.0] — 2026-03-27
+- Proje iskeleti oluşturuldu (12 dosya)
+- 10+ veri kaynağı test edildi (yfinance, tvDatafeed, truncgil, doviz.com, isyatirim, vb.)
+- Mimari karar: truncgil (anlık) + yfinance (tarihsel) + tvDatafeed (yedek)
+- İlk Streamlit çalışma testi başarılı (localhost:8501)
 
 ---
 

@@ -154,7 +154,7 @@ def apply_chart_font(
         for ann in fig.layout.annotations:
             ann.font = dict(size=font_size)
 
-    # Son günün verisini 2 gün sağa uzat (düz çizgi)
+    # Son günün verisini sağa uzat (düz çizgi) — gelecek tarih göstermeden
     _max_date = None
     for _tr in fig.data:
         if _tr.__class__.__name__ != "Scatter":
@@ -165,13 +165,13 @@ def apply_chart_font(
         _last_y = _tr.y[-1] if _tr.y[-1] is not None else None
         if _last_y is None:
             continue
-        _ext_x = [_last_x + pd.Timedelta(days=1), _last_x + pd.Timedelta(days=2)]
+        _ext_x = [_last_x + pd.Timedelta(hours=h) for h in (4, 8, 12)]
         _tr.x = list(_tr.x) + _ext_x
-        _tr.y = list(_tr.y) + [_last_y, _last_y]
+        _tr.y = list(_tr.y) + [_last_y] * 3
         if _max_date is None or _last_x > _max_date:
             _max_date = _last_x
     if _max_date is not None:
-        fig.update_xaxes(range=[None, _max_date + pd.Timedelta(days=3)])
+        fig.update_xaxes(range=[None, _max_date + pd.Timedelta(days=1)])
 
     turkce_tarih_ekseni(fig)
     return fig

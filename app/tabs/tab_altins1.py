@@ -75,12 +75,12 @@ def render(ctx: "TabContext") -> None:
             # Makas oranı trace — hover'da her tarihte görünsün, çizgi en üstte beyaz
             _makas_series = (a1 - beklenen_series) / beklenen_series * 100
             _makas_series_int = _makas_series.round(0).astype(int)
-            # Son günü 2 gün ileriye uzat
+            # Son günü sağa uzat (gelecek tarih göstermeden)
             _last_date = _makas_series.index[-1]
             _last_val = _makas_series_int.values[-1]
-            _ext_x = [_last_date + pd.Timedelta(days=1), _last_date + pd.Timedelta(days=2)]
-            _ext_y = [a1.max() * 1.03] * 2
-            _ext_val = [_last_val, _last_val]
+            _ext_x = [_last_date + pd.Timedelta(hours=h) for h in (4, 8, 12)]
+            _ext_y = [a1.max() * 1.03] * 3
+            _ext_val = [_last_val] * 3
             fig_vs.add_trace(
                 go.Scatter(
                     x=list(_makas_series.index) + _ext_x,

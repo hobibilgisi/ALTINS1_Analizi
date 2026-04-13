@@ -311,6 +311,7 @@ def fetch_current_prices() -> Dict[str, Any]:
     # Başarılı veri varsa disk cache'e yaz (mesai dışı kullanım için)
     if altins1_price and gram_tl:
         save_prices_to_cache(result)
+        result["_cache_time"] = datetime.now().isoformat()
 
     return result
 

@@ -19,7 +19,7 @@ call "%~dp0..\.venv\Scripts\activate.bat"
 :: Tarayiciyi 2 saniye sonra otomatik ac (Streamlit'in baslamasini bekle)
 start "" cmd /c "timeout /t 2 /nobreak >nul & start http://localhost:8501"
 
-streamlit run main.py
+streamlit run altins1_app.py
 
 :: ── Kapanışta da portu temizle (Ctrl+C / pencere kapatma) ───
 echo.

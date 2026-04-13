@@ -265,29 +265,23 @@ def get_highlighted_reserves(reserves: List[ReserveData]) -> List[ReserveData]:
 # TARİHSEL KAYIT ve DEĞİŞİM TAKİBİ
 # ═══════════════════════════════════════════════════════════════
 
-# Varsayılan grafik ülkeleri: en yüksek 5 + Türkiye
+# Varsayılan grafik ülkeleri: ABD, Çin, Türkiye
 _DEFAULT_CHART_COUNTRIES = [
-    "ABD", "Almanya", "İtalya", "Fransa", "Rusya", "Türkiye",
+    "ABD", "Çin", "Türkiye",
 ]
 
 _PERIOD_LABELS = {
     "1a": "Son 1 Ay",
-    "3a": "Son 3 Ay",
+    "2a": "Son 2 Ay",
     "6a": "Son 6 Ay",
-    "1y": "Son 1 Yıl",
-    "3y": "Son 3 Yıl",
-    "5y": "Son 5 Yıl",
-    "tumu": "Tüm Veri (2018+)",
+    "12a": "Son 12 Ay",
 }
 
 _PERIOD_DAYS = {
     "1a": 30,
-    "3a": 90,
+    "2a": 60,
     "6a": 180,
-    "1y": 365,
-    "3y": 1095,
-    "5y": 1825,
-    "tumu": 9999,
+    "12a": 365,
 }
 
 

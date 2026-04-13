@@ -111,14 +111,34 @@ altins1_analiz/
 │   ├── __init__.py            # Paket başlatma
 │   ├── config.py              # Tüm konfigürasyon, YF_SYMBOLS, EmailConfig
 │   ├── data_fetcher.py        # Fiyat verisi çekme (yfinance, truncgil, Mynet)
+│   ├── data_preparer.py       # Tarihsel veri hazırlama (PreparedSeries dataclass)
 │   ├── calculator.py          # Gram altın hesaplama, makas hesaplama
 │   ├── signal_engine.py       # Alım/satım sinyal motoru (5 seviye)
 │   ├── news_fetcher.py        # RSS haber çekme (günlük/haftalık)
 │   ├── email_notifier.py      # Günlük sinyal özeti e-posta gönderimi
-│   ├── reserve_tracker.py     # Merkez bankası altın rezerv takibi
-│   └── charts.py              # Plotly grafik bileşenleri (7 grafik)
+│   ├── reserve_tracker.py     # Merkez bankası altın rezerv takibi + tarihsel kayıt
+│   ├── reserve_signals.py     # MB rezerv sinyal analizi (3 sinyal + bileşik)
+│   ├── historical_reserves.py # WGC/IMF IFS tarihsel rezerv verileri (2018+)
+│   ├── charts.py              # Plotly grafik bileşenleri (apply_base_layout, COLORS)
+│   ├── ui_helpers.py          # UI yardımcıları (EMA, chart font, PLOTLY_CONFIG)
+│   └── tabs/                  # Tab modülleri (her tab bağımsız render() fonksiyonu)
+│       ├── __init__.py        # TabContext dataclass
+│       ├── tab_altins1.py     # Tab 1: ALTINS1 Gerçek vs Beklenen
+│       ├── tab_spread.py      # Tab 2: Makas analizi
+│       ├── tab_normalize.py   # Tab 3: Normalize karşılaştırma
+│       ├── tab_ons.py         # Tab 4: Ons Altın XAU/USD
+│       ├── tab_gold_silver.py # Tab 5: Altın vs Gümüş
+│       ├── tab_news.py        # Tab 6: Haberler
+│       ├── tab_reserves.py    # Tab 7: MB Rezervleri + Sinyaller
+│       └── tab_guide.py       # Tab 8: Bilgi Rehberi
 ├── data/
 │   └── cache/                 # Önbellek verileri (last_prices.json)
+├── dokumanlar/                # Proje dokümantasyonu
+│   ├── CHANGELOG.md           # Değişiklik günlüğü
+│   ├── ISLEMLER.md            # İşlem günlüğü
+│   ├── TALIMATLAR.md          # Bu dosya
+│   ├── YAPILACAKLAR.md        # Yapılacaklar listesi
+│   └── WEB_TASIMA_REHBERI.md  # Streamlit Cloud deployment rehberi
 ├── logs/
 │   └── app.log                # Uygulama logları
 ├── tests/
@@ -126,12 +146,11 @@ altins1_analiz/
 │   ├── test_data_fetcher.py   # Veri çekme testleri
 │   ├── test_calculator.py     # Hesaplama testleri
 │   └── test_signal_engine.py  # Sinyal testleri
-├── main.py                    # Streamlit giriş noktası (690+ satır, 7 sekme)
+├── altins1_app.py             # Streamlit giriş noktası
 ├── start.bat                  # Masaüstü kısayol başlatıcı
+├── stop.bat                   # Uygulamayı durdurma
 ├── requirements.txt           # Python bağımlılıkları
-├── README.md                  # Proje açıklaması
-├── TALIMATLAR.md              # Bu dosya
-└── ISLEMLER.md                # İşlem günlüğü
+└── README.md                  # Proje açıklaması
 ```
 
 ---
@@ -177,7 +196,8 @@ python-dateutil>=2.8.0   # Tarih işlemleri
 - 5 seviyeli sinyal motoru (STRONG_BUY → STRONG_SELL)
 
 ### Aşama 4: Grafik Arayüzü ✅
-- Streamlit dashboard yapısı (7 sekme)
+- Streamlit dashboard yapısı (8 sekme, her tab ayrı modül: `app/tabs/`)
+- `TabContext` dataclass ile tab modüllerine ortak veri aktarımı
 - ALTINS1 vs Beklenen grafiği (TL/USD toggle)
 - Makas tarihsel grafiği (kümülatif ortalama + eşik çizgileri)
 - Normalize karşılaştırma (ALTINS1, Gram, Ons, GLDTR)
@@ -199,10 +219,10 @@ python-dateutil>=2.8.0   # Tarih işlemleri
 - Birden fazla alıcıya HTML formatında gönderim
 - Masaüstü kısayol başlatıcı (`start.bat`)
 
-### Aşama 7: Web Deployment (Planlanan)
-- Vercel veya Streamlit Cloud'a taşıma
-- Otomatik periyodik yenileme
-- Performans optimizasyonu
+### Aşama 7: Web Deployment ✅
+- Streamlit Cloud'a taşındı (GitHub repo: `hobibilgisi/ALTINS1_Analizi`)
+- `altins1_app.py` giriş noktası olarak ayarlandı
+- Otomatik deploy: `main` branch'e push → Cloud otomatik günceller
 
 ---
 
@@ -251,16 +271,15 @@ python-dateutil>=2.8.0   # Tarih işlemleri
 > Açık maddeler her oturum başında kontrol edilir. Tamamlanan maddeler ✅ ile işaretlenir.
 
 ### Öncelikli (Kısa Vadeli)
-- [ ] Vercel veya Streamlit Cloud'a web deployment
-- [ ] GitHub repo'yu **private** yaparak fork/kaynak kod erişimini engelleme
 - [ ] Ek sinyal yöntemleri değerlendirme (MB momentum hızlanması, fiyat korelasyonu vb.)
+- [ ] Bazı grafiklerde tarihler hâlâ İngilizce — `turkce_tarih_ekseni()` gözden geçirilmeli
 
 ### Orta Vadeli
 - [ ] Otomatik periyodik yenileme ve geçmiş veri saklama (SQLite/CSV)
 - [ ] Telegram bildirim entegrasyonu (opsiyonel)
 - [ ] ALTINS1 için alternatif BIST veri kaynağı araştırma
-- [ ] IMF web scraping otomatik aylık veri güncellemesi (`imf.org/external/np/fin/tad/exfin2.aspx`)
-- [ ] MB alım trendi vs altın fiyat korelasyonu analizi (Tab7 içinde)
+- [ ] IMF web scraping otomatik aylık veri güncellemesi
+- [ ] MB alım trendi vs altın fiyat korelasyonu analizi
 
 ### Tamamlananlar
 - [x] ALTINS1 BIST fiyat kaynağı bulma → Mynet Finans (82.33 TL, 419 bar tarihsel)
@@ -277,13 +296,17 @@ python-dateutil>=2.8.0   # Tarih işlemleri
 - [x] Günlük sinyal özeti e-posta bildirim sistemi
 - [x] TL/USD para birimi toggle (Tab1, Tab3, Tab6)
 - [x] Mobil grafik zoom/pan sorunu — Grafik Kilidi toggle + dragmode=False (Oturum 5)
-- [x] Grafik başlığı/araç çubuğu çakışması — title pozisyon ve margin düzeltmesi (Oturum 5)
-- [x] MB verileri iyileştirme — "Altın Payı" etiketi, az veri uyarısı, tablo fallback (Oturum 5)
-- [x] GitHub fork butonu ve Streamlit footer gizleme — CSS ile (Oturum 5)
-- [x] PWA desteği — manifest.json, meta etiketleri, ana ekrana ekleme (Oturum 5)
-- [x] Merkez bankası tarihsel altın rezerv verisi — WGC/IMF IFS 11 ülke, 2018-2025 (Oturum 5)
-- [x] MB sinyal analiz sistemi — 3 sinyal + bileşik, Tab7 paneli (Oturum 5)
-- [x] MB "Altın Alım Gücü" metriği → Ağırlıklı Talep Endeksi olarak implement edildi (Oturum 5)
+- [x] Streamlit Cloud deployment — `hobibilgisi/ALTINS1_Analizi` repo, `altins1_app.py` entry point
+- [x] Kod refactoring: `ui_helpers.py`, `data_preparer.py` çıkarıldı, `charts.py` merkezileştirildi
+- [x] `signal_engine.py` ölü kod temizliği
+- [x] Grafik legend mobil uyumu — legend grafik altına taşındı
+- [x] Tab başlıkları wrap + seçili tab underline
+- [x] Responsive CSS (768px breakpoint)
+- [x] Rezerv grafiği: varsayılan ABD/Çin/TR, % değişim modu, 1-2-6-12 ay periyotlar
+- [x] MD dosyaları `dokumanlar/` klasörüne taşındı
+- [x] Kapsamlı yazılım mimari dokümantasyonu (MIMARI_RAPOR.md)
+- [x] Tab modül refactoring: 8 tab `app/tabs/` paketine çıkarıldı, `altins1_app.py` orkestratöre dönüştürüldü (~1,700 → 555 satır)
+- [x] Type hints eklendi (ui_helpers.py + tüm tab modülleri)
 
 ---
 

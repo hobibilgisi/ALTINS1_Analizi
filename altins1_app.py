@@ -15,36 +15,30 @@ import sys
 from datetime import datetime
 
 import pandas as pd
-import plotly.graph_objects as go
 import streamlit as st
 
 # Proje kök dizinini path'e ekle
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from app.config import (
-    AppConfig, SignalThresholds, TROY_OUNCE_GRAM,
+    AppConfig, SignalThresholds,
     ALTINS1_GRAM_KATSAYI,
 )
 from app.data_fetcher import (
     fetch_current_prices, fetch_all_history, fetch_altins1_mynet,
     is_bist_open, load_prices_from_cache,
 )
-from app.calculator import (
-    calculate_gram_gold_tl,
-    calculate_expected_altins1,
-    calculate_spread,
-    calculate_spread_series,
-    spread_statistics,
-)
 from app.signal_engine import evaluate_signal, generate_signal_message, SignalType
-from app.charts import (
-    create_price_chart, create_spread_chart,
-    create_altins1_vs_expected_chart, create_overlay_chart,
-    create_gold_silver_chart,
-)
-from app.news_fetcher import get_gold_news, get_daily_and_weekly_news
+from app.news_fetcher import get_daily_and_weekly_news
 from app.email_notifier import send_daily_signal_email
 from app.config import EmailConfig
+from app.data_preparer import prepare_all_series
+from app.tabs import TabContext
+from app.tabs import (
+    tab_altins1, tab_spread, tab_normalize,
+    tab_ons, tab_gold_silver, tab_news,
+    tab_reserves, tab_guide,
+)
 
 # ── Logging ────────────────────────────────────────────────────
 os.makedirs("logs", exist_ok=True)
@@ -176,6 +170,40 @@ st.markdown(f"""
     .stMainBlockContainer h3 {{
         font-size: {_font_size + 6}px !important;
     }}
+    /* ── Tab başlıkları: taşma yerine alt satıra geç ── */
+    div[data-baseweb="tab-list"] {{
+        flex-wrap: wrap !important;
+        gap: 4px 0 !important;
+    }}
+    div[data-baseweb="tab-list"] button[data-baseweb="tab"] {{
+        white-space: nowrap !important;
+    }}
+    /* ── Seçili tab: alt çizgi highlight yerine text underline ── */
+    div[data-baseweb="tab-highlight"] {{
+        display: none !important;
+    }}
+    div[data-baseweb="tab-list"] button[aria-selected="true"] {{
+        text-decoration: underline !important;
+        text-underline-offset: 4px !important;
+        text-decoration-thickness: 3px !important;
+    }}
+    /* ── Responsive: Mobil (<768px) ── */
+    @media (max-width: 768px) {{
+        section[data-testid="stSidebar"][aria-expanded="true"] {{
+            width: 85vw !important;
+            min-width: 0 !important;
+        }}
+        .stMainBlockContainer h1 {{
+            font-size: {max(_font_size + 4, 20)}px !important;
+        }}
+        .stMainBlockContainer h2 {{
+            font-size: {max(_font_size + 2, 18)}px !important;
+        }}
+        div[data-baseweb="tab-list"] button[data-baseweb="tab"] {{
+            font-size: {max(_font_size - 2, 12)}px !important;
+            padding: 6px 8px !important;
+        }}
+    }}
 </style>
 """, unsafe_allow_html=True)
 
@@ -195,11 +223,6 @@ def load_altins1_history():
 @st.cache_data(ttl=config.cache_ttl_sec)
 def load_history(period_val):
     return fetch_all_history(period=period_val)
-
-
-@st.cache_data(ttl=600)
-def load_news():
-    return get_gold_news()
 
 
 @st.cache_data(ttl=600)
@@ -247,97 +270,8 @@ altins1_hist = load_altins1_history()
 history = load_history(period)
 
 # ── Tarihsel veri hazırlığı ────────────────────────────────────
-# Tarihsel gram altın TL hesapla (ons × USDTRY / 31.1035)
-has_ons_hist = history.get("ons_altin_usd") is not None
-has_usdtry_hist = history.get("dolar_tl") is not None
-gram_gold_hist_series = None
-ons_gold_tl_hist_series = None
-ons_usd_hist_series = None
-usdtry_hist_series = None
-
-if has_ons_hist and has_usdtry_hist:
-    ons_hist = history["ons_altin_usd"]
-    usdtry_hist = history["dolar_tl"]
-    ons_hist = ons_hist.copy()
-    usdtry_hist = usdtry_hist.copy()
-    ons_hist.index = pd.to_datetime(ons_hist.index).tz_localize(None).normalize()
-    usdtry_hist.index = pd.to_datetime(usdtry_hist.index).tz_localize(None).normalize()
-    ons_hist = ons_hist[~ons_hist.index.duplicated(keep="last")]
-    usdtry_hist = usdtry_hist[~usdtry_hist.index.duplicated(keep="last")]
-    common_idx = ons_hist.index.intersection(usdtry_hist.index)
-    if len(common_idx) > 0:
-        gram_gold_hist_series = (
-            ons_hist.loc[common_idx, "Close"] * usdtry_hist.loc[common_idx, "Close"]
-        ) / TROY_OUNCE_GRAM
-        ons_gold_tl_hist_series = (
-            ons_hist.loc[common_idx, "Close"] * usdtry_hist.loc[common_idx, "Close"]
-        )
-        ons_usd_hist_series = ons_hist.loc[common_idx, "Close"]
-        usdtry_hist_series = usdtry_hist.loc[common_idx, "Close"]
-
-# ALTINS1 tarihsel Close serisi (tarih normalize)
-altins1_hist_series = None
-if altins1_hist is not None and not altins1_hist.empty and "Close" in altins1_hist.columns:
-    altins1_hist_clean = altins1_hist.copy()
-    idx = pd.to_datetime(altins1_hist_clean.index)
-    if idx.tz is not None:
-        idx = idx.tz_localize(None)
-    altins1_hist_clean.index = idx.normalize()
-    altins1_hist_clean = altins1_hist_clean[~altins1_hist_clean.index.duplicated(keep="last")]
-    altins1_hist_series = altins1_hist_clean["Close"]
-
-# ── Gümüş tarihsel veri hazırlığı ─────────────────────────────
-has_gumus_hist = history.get("ons_gumus_usd") is not None
-ons_silver_usd_hist_series = None
-gram_silver_hist_series = None
-
-if has_gumus_hist:
-    gumus_hist = history["ons_gumus_usd"].copy()
-    gumus_hist.index = pd.to_datetime(gumus_hist.index).tz_localize(None).normalize()
-    gumus_hist = gumus_hist[~gumus_hist.index.duplicated(keep="last")]
-    ons_silver_usd_hist_series = gumus_hist["Close"]
-    if has_usdtry_hist:
-        silver_common = gumus_hist.index.intersection(usdtry_hist.index)
-        if len(silver_common) > 0:
-            gram_silver_hist_series = (
-                gumus_hist.loc[silver_common, "Close"] * usdtry_hist.loc[silver_common, "Close"]
-            ) / TROY_OUNCE_GRAM
-
-
-# ── Faiz tarihsel veri hazırlığı ─────────────────────────────
-has_faiz_hist = history.get("faiz_us10y") is not None
-faiz_hist_series = None
-
-if has_faiz_hist:
-    faiz_hist = history["faiz_us10y"].copy()
-    faiz_hist.index = pd.to_datetime(faiz_hist.index).tz_localize(None).normalize()
-    faiz_hist = faiz_hist[~faiz_hist.index.duplicated(keep="last")]
-    if "Close" in faiz_hist.columns and not faiz_hist["Close"].dropna().empty:
-        faiz_hist_series = faiz_hist["Close"]
-
-# ── Anlık veriyle tarihsel son günü eşitle ────────────────────
-# Üst paneldeki anlık makas (truncgil gram altın + mynet anlık ALTINS1) ile
-# grafikteki tarihsel makas (yfinance hesaplama + mynet tarihsel Close) farklı
-# kaynaklar kullandığı için tutarsız olabiliyor. Bugünün değerini anlık veriyle güncelle.
-_today = pd.Timestamp(datetime.now().date())
-_live_gram = prices.get("gram_altin_tl")
-_live_s1 = prices.get("altins1_fiyat")
-if gram_gold_hist_series is not None and _live_gram:
-    gram_gold_hist_series[_today] = _live_gram
-    gram_gold_hist_series = gram_gold_hist_series.sort_index()
-if altins1_hist_series is not None and _live_s1:
-    altins1_hist_series[_today] = _live_s1
-    altins1_hist_series = altins1_hist_series.sort_index()
-
-# Tarihsel makas hesabı (eşikler için)
-spread_hist = None
-if altins1_hist_series is not None and gram_gold_hist_series is not None:
-    _sp_common = altins1_hist_series.index.intersection(gram_gold_hist_series.index)
-    if len(_sp_common) > 0:
-        spread_hist = calculate_spread_series(
-            altins1_hist_series.loc[_sp_common],
-            gram_gold_hist_series.loc[_sp_common],
-        )
+_series = prepare_all_series(history, altins1_hist, prices)
+spread_hist = _series.spread
 
 avg_spread = float(spread_hist.mean()) if spread_hist is not None and len(spread_hist) > 0 else 15.0
 buy_th = round(avg_spread, 1)
@@ -467,168 +401,17 @@ st.markdown("---")
 st.header("📈 Grafikler")
 
 
-def _add_ema_traces(fig, series, ema_states, label_prefix="", line_dash="dash", **add_trace_kw):
-    """Plotly figürüne EMA çizgileri ekler.
-
-    ema_states: dict {"ema20": bool, "ema50": bool, "ema100": bool, "ema200": bool}
-    label_prefix: EMA etiketlerinin önüne eklenecek kısaltma (ör. "s1 ", "gr ")
-    line_dash: çizgi stili ("dash", "dot", "dashdot" vb.)
-    add_trace_kw: fig.add_trace'e geçirilecek ek parametreler (row, col, secondary_y vb.)
-    """
-    _ema_cfg = [
-        (20, ema_states.get("ema20", False), "#29b6f6", f"{label_prefix}EMA 20"),
-        (50, ema_states.get("ema50", False), "#66bb6a", f"{label_prefix}EMA 50"),
-        (100, ema_states.get("ema100", False), "#ab47bc", f"{label_prefix}EMA 100"),
-        (200, ema_states.get("ema200", False), "#ef5350", f"{label_prefix}EMA 200"),
-    ]
-    for _w, _vis, _clr, _lbl in _ema_cfg:
-        if _vis and len(series) >= _w:
-            _ema = series.ewm(span=_w, adjust=False).mean()
-            fig.add_trace(
-                go.Scatter(
-                    x=_ema.index, y=_ema.values,
-                    mode="lines", name=_lbl,
-                    line=dict(color=_clr, width=1.5, dash=line_dash),
-                ),
-                **add_trace_kw,
-            )
-
-
-def _ema_checkboxes(container, prefix, default_on=True):
-    """4 EMA checkbox'ı + tümünü aç/kapat toggle oluşturur ve dict döner."""
-    _all_key = f"{prefix}_ema_all"
-    _keys = {
-        "ema20": f"{prefix}_ema20",
-        "ema50": f"{prefix}_ema50",
-        "ema100": f"{prefix}_ema100",
-        "ema200": f"{prefix}_ema200",
-    }
-
-    # "Tümü" değiştiğinde bireysel checkbox'ları session_state üzerinden güncelle
-    def _on_all_change():
-        _val = st.session_state[_all_key]
-        for _k in _keys.values():
-            st.session_state[_k] = _val
-
-    row_top = container.columns([1, 1])
-    row_top[0].checkbox("✅ Tümü", value=False, key=_all_key, on_change=_on_all_change)
-    c1, c2, c3, c4 = container.columns(4)
-    return {
-        "ema20": c1.checkbox("🔵 EMA 20", value=default_on, key=_keys["ema20"]),
-        "ema50": c2.checkbox("🟢 EMA 50", value=default_on, key=_keys["ema50"]),
-        "ema100": c3.checkbox("� EMA 100", value=False, key=_keys["ema100"]),
-        "ema200": c4.checkbox("🔴 EMA 200", value=False, key=_keys["ema200"]),
-    }
-
-
-def _apply_chart_font(fig):
-    """Grafik içi metin boyutlarını _font_size'a göre ayarlar.
-    Dikey crosshair + hover etiketleri her çizginin Y konumunda."""
-    # Tüm trace'lerde hover formatını 2 ondalık + kompakt etiket
-    # + hover etiketini çizgi rengine eşitle
-    for _tr in fig.data:
-        # Candlestick ve OHLC'ye özel hover formatı atama (kendi hover'ı var)
-        is_ohlc = _tr.__class__.__name__ in ("Candlestick", "Ohlc")
-        if not is_ohlc and hasattr(_tr, "yhoverformat"):
-            _tr.yhoverformat = ".2f"
-        if not is_ohlc and hasattr(_tr, "hovertemplate") and _tr.hovertemplate is None:
-            _tr.hovertemplate = "<b>%{fullData.name}</b>: %{y:.2f}<extra></extra>"
-        # Etiket arka planını çizgi/marker rengine eşitle
-        _clr = None
-        if hasattr(_tr, "line") and _tr.line and getattr(_tr.line, "color", None):
-            _clr = _tr.line.color
-        elif hasattr(_tr, "marker") and _tr.marker and getattr(_tr.marker, "color", None):
-            _clr = _tr.marker.color
-        if _clr:
-            _tr.hoverlabel = dict(
-                font=dict(color=_clr, size=_font_size),
-                bgcolor="rgba(30,30,30,0.85)",
-                bordercolor=_clr,
-            )
-    # Grafik kilidi: mobilde yanlışlıkla zoom/seçim yapılmasını engeller
-    _drag = False if _grafik_kilidi else "zoom"
-
-    fig.update_layout(
-        font=dict(size=_font_size),
-        title_font_size=_font_size + 4,
-        legend_font_size=_font_size,
-        height=_chart_height,
-        # Mobil dokunma sorununu engelle — grafik kilidi
-        dragmode=_drag,
-        # Başlığı sol üste al, araç çubuğuyla çakışmasın
-        title_x=0.0,
-        title_xanchor="left",
-        title_y=0.98,
-        margin=dict(l=50, r=50, t=80, b=30),
-        # "x" modu: her trace kendi Y konumunda etiket gösterir
-        hovermode="x",
-        hoverlabel=dict(
-            font_size=_font_size,
-            namelength=-1,
-        ),
-    )
-    fig.update_xaxes(
-        tickfont_size=_font_size - 1,
-        # Dikey crosshair çizgisi
-        showspikes=True,
-        spikemode="across",
-        spikesnap="cursor",
-        spikethickness=1,
-        spikecolor="#888888",
-        spikedash="dot",
-    )
-    fig.update_yaxes(
-        tickfont_size=_font_size - 1,
-        showspikes=True,
-        spikemode="across",
-        spikesnap="cursor",
-        spikethickness=1,
-        spikecolor="#888888",
-        spikedash="dot",
-        hoverformat=".2f",
-    )
-    # Annotation'lar (hline etiketleri vb.)
-    if fig.layout.annotations:
-        for ann in fig.layout.annotations:
-            ann.font = dict(size=_font_size)
-
-    # ── Son günün verisini 2 gün sağa uzat (düz çizgi) ────────
-    _max_date = None
-    for _tr in fig.data:
-        if _tr.__class__.__name__ != "Scatter":
-            continue
-        if _tr.x is None or _tr.y is None or len(_tr.x) == 0:
-            continue
-        _last_x = pd.Timestamp(_tr.x[-1])
-        _last_y = _tr.y[-1] if _tr.y[-1] is not None else None
-        if _last_y is None:
-            continue
-        _ext_x = [_last_x + pd.Timedelta(days=1), _last_x + pd.Timedelta(days=2)]
-        _tr.x = list(_tr.x) + _ext_x
-        _tr.y = list(_tr.y) + [_last_y, _last_y]
-        if _max_date is None or _last_x > _max_date:
-            _max_date = _last_x
-    # X ekseni sağ sınırını uzat
-    if _max_date is not None:
-        fig.update_xaxes(range=[None, _max_date + pd.Timedelta(days=3)])
-
-    # Türkçe tarih ekseni — tüm trace ekleme/mutasyon işlemlerinden SONRA uygula
-    turkce_tarih_ekseni(fig)
-
-    return fig
-
-
-# ── Plotly grafik render config (mobil uyumlu) ─────────────────
-_plotly_config = {
-    "scrollZoom": False,          # Kaydırma ile zoom engelle
-    "displayModeBar": True,       # Araç çubuğu göster
-    "modeBarButtonsToRemove": ["select2d", "lasso2d"],  # Seçim araçlarını kaldır
-    "displaylogo": False,         # Plotly logosunu gizle
-}
-
-# Türkçe tarih ekseni: charts.py modülünde merkezi olarak tanımlı
-from app.charts import turkce_tarih_ekseni
-
+# ── Tab Bağlamı ────────────────────────────────────────────────
+_tab_ctx = TabContext(
+    series=_series,
+    prices=prices,
+    history=history,
+    spread_hist=spread_hist,
+    thresholds=thresholds,
+    font_size=_font_size,
+    chart_height=_chart_height,
+    grafik_kilidi=_grafik_kilidi,
+)
 
 tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
     "🎯 ALTINS1 Analizi",
@@ -642,679 +425,29 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
 ])
 
 with tab1:
-    with st.expander("⚙️ Grafik Ayarları", expanded=False):
-        tab1_ccy = st.radio("Para birimi", ["TL", "USD"], horizontal=True, key="tab1_currency")
-        _t1c1, _t1c2 = st.columns(2)
-        _show_t1_gercek = _t1c1.checkbox("🔵 ALTINS1 Gerçek", value=True, key="t1_gercek")
-        _show_t1_beklenen = _t1c2.checkbox("🟠 %1 Gr Altın", value=True, key="t1_beklenen")
-        st.markdown("**EMA — S1 (ALTINS1)**")
-        _t1_ema_s1 = _ema_checkboxes(st, "t1s1", default_on=False)
-        st.markdown("**EMA — GR (Gram Altın)**")
-        _t1_ema_gr = _ema_checkboxes(st, "t1gr", default_on=False)
-
-    if altins1_hist_series is not None and gram_gold_hist_series is not None:
-        # Ortak indeks bul
-        common = altins1_hist_series.index.intersection(gram_gold_hist_series.index)
-        if len(common) > 0:
-            a1 = altins1_hist_series.loc[common]
-            gt = gram_gold_hist_series.loc[common]
-            ons_for_chart = None
-
-            # Ons altın serisini hazırla (ortak aralıkta)
-            if ons_gold_tl_hist_series is not None:
-                ons_common = ons_gold_tl_hist_series.index.intersection(common)
-                if len(ons_common) > 0:
-                    ons_for_chart = ons_gold_tl_hist_series.loc[ons_common]
-
-            if tab1_ccy == "USD" and usdtry_hist_series is not None:
-                usd_rate = usdtry_hist_series.loc[usdtry_hist_series.index.intersection(common)]
-                ci = a1.index.intersection(usd_rate.index)
-                a1 = a1.loc[ci] / usd_rate.loc[ci]
-                gt = gt.loc[ci] / usd_rate.loc[ci]
-                # Ons: doğrudan USD serisini kullan
-                if ons_usd_hist_series is not None:
-                    ons_common_usd = ons_usd_hist_series.index.intersection(ci)
-                    ons_for_chart = ons_usd_hist_series.loc[ons_common_usd] if len(ons_common_usd) > 0 else None
-                common = ci
-
-            st.caption(
-                f"📅 Ortak tarih aralığı: {common.min().strftime('%d.%m.%Y')} — "
-                f"{common.max().strftime('%d.%m.%Y')} ({len(common)} gün)"
-            )
-            fig_vs = create_altins1_vs_expected_chart(
-                a1, gt,
-                currency=tab1_ccy,
-            )
-            for _tr in fig_vs.data:
-                if "Gerçek" in _tr.name and not _show_t1_gercek:
-                    _tr.visible = False
-                if ("%1 Gr" in _tr.name or "Beklenen" in _tr.name) and not _show_t1_beklenen:
-                    _tr.visible = False
-            beklenen_series = gt * ALTINS1_GRAM_KATSAYI
-            # Makas oranı trace — hover'da her tarihte görünsün, çizgi en üstte beyaz
-            _makas_series = (a1 - beklenen_series) / beklenen_series * 100
-            _makas_series_int = _makas_series.round(0).astype(int)
-            # Son günü 2 gün ileriye uzat
-            _last_date = _makas_series.index[-1]
-            _last_val = _makas_series_int.values[-1]
-            _ext_x = [_last_date + pd.Timedelta(days=1), _last_date + pd.Timedelta(days=2)]
-            _ext_y = [a1.max() * 1.03] * 2
-            _ext_val = [_last_val, _last_val]
-            fig_vs.add_trace(
-                go.Scatter(
-                    x=list(_makas_series.index) + _ext_x,
-                    y=[a1.max() * 1.03] * len(_makas_series) + _ext_y,
-                    mode="lines",
-                    name="Makas %",
-                    line=dict(color="#fff", width=2, dash="solid"),
-                    showlegend=False,
-                    hovertemplate="<b style='color:white'>Makas</b>: %{customdata:+d}%<extra></extra>",
-                    customdata=list(_makas_series_int.values) + _ext_val,
-                ),
-            )
-            _add_ema_traces(fig_vs, a1, _t1_ema_s1, label_prefix="s1 ", line_dash="dot")
-            _add_ema_traces(fig_vs, beklenen_series, _t1_ema_gr, label_prefix="gr ")
-            _apply_chart_font(fig_vs)
-            st.plotly_chart(fig_vs, width="stretch", config=_plotly_config)
-        else:
-            st.warning("ALTINS1 ve gram altın TL tarih aralıkları örtüşmüyor.")
-    elif altins1_hist_series is not None:
-        st.info("Tarihsel gram altın TL verisi eşleştirilemedi. Sadece ALTINS1 gösteriliyor.")
-        fig_only = go.Figure()
-        fig_only.add_trace(go.Scatter(
-            x=altins1_hist_series.index, y=altins1_hist_series.values,
-            mode="lines", name="ALTINS1", line=dict(color="#42a5f5", width=2),
-        ))
-        if beklenen:
-            fig_only.add_hline(y=beklenen, line_dash="dash", line_color="#ffa726",
-                               annotation_text=f"Güncel Beklenen: ₺{beklenen:.2f}")
-        fig_only.update_layout(title="ALTINS1 Tarihsel Fiyat", template="plotly_dark",
-                               yaxis_title="TL", height=_chart_height)
-        _apply_chart_font(fig_only)
-        st.plotly_chart(fig_only, width="stretch", config=_plotly_config)
-    else:
-        st.warning("ALTINS1 tarihsel verisi yüklenemedi.")
+    tab_altins1.render(_tab_ctx)
 
 with tab2:
-    if spread_hist is not None and len(spread_hist) > 0:
-        with st.expander("⚙️ Grafik Ayarları", expanded=False):
-            _t2c1, _t2c2 = st.columns(2)
-            _show_t2_makas = _t2c1.checkbox("🟠 Makas (%)", value=True, key="t2_makas")
-            _show_t2_cumavg = _t2c2.checkbox("🔵 Kümülatif Ortalama", value=True, key="t2_cumavg")
-            _t2_ema = _ema_checkboxes(st, "t2")
-
-        fig_spread = create_spread_chart(
-            spread_hist,
-            buy_threshold=buy_th,
-            sell_threshold=sell_th,
-            strong_buy_threshold=strong_buy_th,
-            strong_sell_threshold=strong_sell_th,
-        )
-        for _tr in fig_spread.data:
-            if "Makas" in _tr.name and not _show_t2_makas:
-                _tr.visible = False
-            if "Kümülatif" in _tr.name and not _show_t2_cumavg:
-                _tr.visible = False
-        _add_ema_traces(fig_spread, spread_hist, _t2_ema)
-        _apply_chart_font(fig_spread)
-        st.plotly_chart(fig_spread, width="stretch", config=_plotly_config)
-
-        # İstatistikler
-        stats = spread_statistics(spread_hist)
-        scols = st.columns(6)
-        scols[0].metric("Güncel", f"%{stats['guncel']}" if stats["guncel"] else "—")
-        scols[1].metric("Ortalama", f"%{stats['ortalama']}" if stats["ortalama"] else "—")
-        scols[2].metric("Medyan", f"%{stats['medyan']}" if stats["medyan"] else "—")
-        scols[3].metric("Std", f"{stats['std']}" if stats["std"] else "—")
-        scols[4].metric("Min", f"%{stats['min']}" if stats["min"] else "—")
-        scols[5].metric("Max", f"%{stats['max']}" if stats["max"] else "—")
-    else:
-        st.info("Makas analizi için ALTINS1 + gram altın TL tarihsel verisi gereklidir.")
+    tab_spread.render(_tab_ctx)
 
 with tab3:
-    with st.expander("⚙️ Grafik Ayarları", expanded=False):
-        norm_ccy = st.radio("Para birimi", ["TL", "USD"], horizontal=True, key="norm_currency")
-
-        # Mevcut serileri topla
-        _norm_series = {}
-        if altins1_hist_series is not None and len(altins1_hist_series) > 0:
-            _norm_series["altins1"] = altins1_hist_series
-        if gram_gold_hist_series is not None and len(gram_gold_hist_series) > 0:
-            _norm_series["gram"] = gram_gold_hist_series
-        # Not: Ons TL ve gram altın TL normalize edilince aynı çizgiyi verir
-        # (ikisi de ons×USDTRY'den türer). Bu yüzden ons'u ayrı gösteriyoruz:
-        # TL modunda ons TL, USD modunda ons USD.
-        if norm_ccy == "USD" and ons_usd_hist_series is not None and len(ons_usd_hist_series) > 0:
-            _norm_series["ons"] = ons_usd_hist_series
-        elif ons_usd_hist_series is not None and len(ons_usd_hist_series) > 0:
-            _norm_series["ons"] = ons_usd_hist_series  # Ons her zaman USD göster
-        if faiz_hist_series is not None and len(faiz_hist_series) > 0:
-            _norm_series["faiz"] = faiz_hist_series
-
-        # Checkbox'lar — sadece mevcut seriler için göster
-        _t3_cols = st.columns(len(_norm_series)) if _norm_series else []
-        _t3_show = {}
-        _t3_meta = {
-            "altins1": ("🔵 ALTINS1", "t3_altins1"),
-            "gram": ("🟠 Gram Altın", "t3_gram"),
-            "ons": ("🟣 Ons Altın (USD)", "t3_ons"),
-            "faiz": ("🔴 ABD 10Y Faiz", "t3_faiz"),
-        }
-        for i, key in enumerate(_norm_series):
-            lbl, cb_key = _t3_meta[key]
-            _t3_show[key] = _t3_cols[i].checkbox(lbl, value=True, key=cb_key)
-
-    # Checkbox'a göre serileri filtrele
-    _norm_visible = {k: v for k, v in _norm_series.items() if _t3_show.get(k, True)}
-
-    if len(_norm_visible) >= 1:
-        # Ortak tarih aralığını bul — tüm seriler aynı noktadan başlasın
-        common_start = max(s.index.min() for s in _norm_visible.values())
-        common_end = min(s.index.max() for s in _norm_visible.values())
-
-        a1 = altins1_hist_series.loc[common_start:common_end] if "altins1" in _norm_visible else None
-        gt = gram_gold_hist_series.loc[common_start:common_end] if "gram" in _norm_visible else None
-        ot = _norm_series["ons"].loc[common_start:common_end] if "ons" in _norm_visible else None
-        fz = faiz_hist_series.loc[common_start:common_end] if "faiz" in _norm_visible else None
-
-        if norm_ccy == "USD" and usdtry_hist_series is not None:
-            usd_rate = usdtry_hist_series.loc[common_start:common_end]
-            if a1 is not None:
-                ci = a1.index.intersection(usd_rate.index)
-                a1 = a1.loc[ci] / usd_rate.loc[ci]
-            if gt is not None:
-                ci = gt.index.intersection(usd_rate.index)
-                gt = gt.loc[ci] / usd_rate.loc[ci]
-            # ot ve fz zaten USD bazlı, dönüşüm gerekmez
-
-        fig_overlay = create_overlay_chart(
-            altins1_series=a1,
-            gram_gold_series=gt,
-            ons_gold_series=ot,
-            faiz_series=fz,
-            currency=norm_ccy,
-        )
-        _apply_chart_font(fig_overlay)
-        st.plotly_chart(fig_overlay, width="stretch", config=_plotly_config)
-        st.caption(
-            f"📅 Ortak aralık: {common_start.strftime('%d.%m.%Y')} — {common_end.strftime('%d.%m.%Y')} | "
-            f"Tüm seriler ilk değere göre normalize edilmiştir (başlangıç = 0%)."
-        )
-    else:
-        st.warning("Normalize karşılaştırma için yeterli tarihsel veri bulunamadı.")
+    tab_normalize.render(_tab_ctx)
 
 with tab4:
-    if has_ons_hist:
-        with st.expander("⚙️ Grafik Ayarları", expanded=False):
-            _t4c1, _t4c2 = st.columns(2)
-            _show_t4_fiyat = _t4c1.checkbox("🟢 Fiyat", value=True, key="t4_fiyat")
-            _show_t4_hacim = _t4c2.checkbox("🔵 Hacim", value=True, key="t4_hacim")
-            _t4_ema = _ema_checkboxes(st, "t4")
-
-        fig_xau = create_price_chart(history["ons_altin_usd"], title="Ons Altın (XAU/USD)")
-        for _tr in fig_xau.data:
-            if _tr.name == "Fiyat" and not _show_t4_fiyat:
-                _tr.visible = False
-            if _tr.name == "Hacim" and not _show_t4_hacim:
-                _tr.visible = False
-        _t4_close = history["ons_altin_usd"]["Close"]
-        _add_ema_traces(fig_xau, _t4_close, _t4_ema, row=1, col=1)
-        _apply_chart_font(fig_xau)
-        st.plotly_chart(fig_xau, width="stretch", config=_plotly_config)
-    else:
-        st.warning("Ons altın tarihsel verisi yüklenemedi.")
+    tab_ons.render(_tab_ctx)
 
 with tab5:
-    with st.expander("⚙️ Grafik Ayarları", expanded=False):
-        # Birim ve para birimi seçimi
-        _t5_opt1, _t5_opt2 = st.columns(2)
-        t5_unit = _t5_opt1.radio("Birim", ["Ons", "Gram"], horizontal=True, key="t5_unit")
-        t5_ccy = _t5_opt2.radio("Para birimi", ["TL", "USD"], horizontal=True, key="t5_currency")
-
-        # Seriler & checkbox
-        _t5c1, _t5c2 = st.columns(2)
-        _show_t5_gold = _t5c1.checkbox("🟡 Altın", value=True, key="t5_gold")
-        _show_t5_silver = _t5c2.checkbox("⚪ Gümüş", value=True, key="t5_silver")
-
-        # Ayrı EMA seçenekleri
-        _t5_ema_col1, _t5_ema_col2 = st.columns(2)
-        with _t5_ema_col1:
-            st.caption("🟡 Altın EMA")
-            _t5_ema_gold = _ema_checkboxes(st, "t5g")
-        with _t5_ema_col2:
-            st.caption("⚪ Gümüş EMA")
-            _t5_ema_silver = _ema_checkboxes(st, "t5s")
-
-    # Veri seçimi
-    if t5_unit == "Ons":
-        _gold_s = ons_usd_hist_series
-        _silver_s = ons_silver_usd_hist_series
-    else:
-        _gold_s = gram_gold_hist_series
-        _silver_s = gram_silver_hist_series
-
-    if _gold_s is not None and _silver_s is not None:
-        gs_common = _gold_s.index.intersection(_silver_s.index)
-        if len(gs_common) > 0:
-            _g = _gold_s.loc[gs_common].copy()
-            _s = _silver_s.loc[gs_common].copy()
-
-            # USD dönüşümü (gram TL → USD)
-            if t5_ccy == "USD" and t5_unit == "Gram" and usdtry_hist_series is not None:
-                usd_rate = usdtry_hist_series.loc[usdtry_hist_series.index.intersection(gs_common)]
-                ci = _g.index.intersection(usd_rate.index)
-                _g = _g.loc[ci] / usd_rate.loc[ci]
-                _s = _s.loc[ci] / usd_rate.loc[ci]
-                gs_common = ci
-            # TL dönüşümü (ons USD → TL)
-            elif t5_ccy == "TL" and t5_unit == "Ons" and usdtry_hist_series is not None:
-                usd_rate = usdtry_hist_series.loc[usdtry_hist_series.index.intersection(gs_common)]
-                ci = _g.index.intersection(usd_rate.index)
-                _g = _g.loc[ci] * usd_rate.loc[ci]
-                _s = _s.loc[ci] * usd_rate.loc[ci]
-                gs_common = ci
-
-            fig_gs = create_gold_silver_chart(
-                _g, _s, unit=t5_unit.lower(), currency=t5_ccy,
-            )
-            for _tr in fig_gs.data:
-                if "Altın" in _tr.name and not _show_t5_gold:
-                    _tr.visible = False
-                if "Gümüş" in _tr.name and not _show_t5_silver:
-                    _tr.visible = False
-
-            # Altın/Gümüş oran serisi — grafik en üstünde beyaz çizgi ile göster
-            _ratio_series = _g / _s
-            _ratio_int = _ratio_series.round(0).astype(int)
-            fig_gs.add_trace(
-                go.Scatter(
-                    x=list(_ratio_series.index),
-                    y=[_g.max() * 1.03] * len(_ratio_series),
-                    mode="lines",
-                    name="Oran",
-                    line=dict(color="#fff", width=2, dash="solid"),
-                    showlegend=False,
-                    hovertemplate="<b style='color:white'>Au/Ag Oran</b>: %{customdata}<extra></extra>",
-                    customdata=list(_ratio_int.values),
-                ),
-            )
-
-            _add_ema_traces(fig_gs, _g, _t5_ema_gold, label_prefix="Au ", secondary_y=False)
-            _add_ema_traces(fig_gs, _s, _t5_ema_silver, label_prefix="Ag ", line_dash="dot", secondary_y=True)
-            _apply_chart_font(fig_gs)
-            st.plotly_chart(fig_gs, width="stretch", config=_plotly_config)
-            st.caption(
-                f"📅 Ortak aralık: {gs_common.min().strftime('%d.%m.%Y')} — "
-                f"{gs_common.max().strftime('%d.%m.%Y')} ({len(gs_common)} gün)"
-            )
-            st.metric("Altın/Gümüş Oranı (Güncel)", f"{_ratio_series.iloc[-1]:.1f}")
-        else:
-            st.warning("Altın ve gümüş tarih aralıkları örtüşmüyor.")
-    else:
-        st.warning("Altın veya gümüş tarihsel verisi yüklenemedi.")
-
+    tab_gold_silver.render(_tab_ctx)
 
 with tab6:
-    st.subheader("📰 Haberler")
     daily_news, weekly_news = load_news_split()
-
-    # Günlük haberler (son 24 saat)
-    st.subheader("📅 Günlük — Son 24 Saat")
-    if daily_news:
-        for item in daily_news[:15]:
-            with st.expander(f"**{item.source}** — {item.title}"):
-                if item.published:
-                    st.caption(f"📅 {item.published}")
-                if item.summary:
-                    st.write(item.summary[:300] + "..." if len(item.summary or "") > 300 else item.summary)
-                st.markdown(f"[Habere git →]({item.link})")
-    else:
-        st.info("Son 24 saatte ilgili haber bulunamadı.")
-
-    # Haftalık haberler (1-7 gün öncesi)
-    st.subheader("📰 Haftalık — Altın, Döviz, Jeopolitik, Ekonomi")
-    if weekly_news:
-        for item in weekly_news[:20]:
-            with st.expander(f"**{item.source}** — {item.title}"):
-                if item.published:
-                    st.caption(f"📅 {item.published}")
-                if item.summary:
-                    st.write(item.summary[:300] + "..." if len(item.summary or "") > 300 else item.summary)
-                st.markdown(f"[Habere git →]({item.link})")
-    else:
-        st.info("Bu hafta ilgili haber bulunamadı.")
+    tab_news.render(daily_news, weekly_news)
 
 with tab7:
-    from app.reserve_tracker import (
-        fetch_reserve_data, get_reserve_sources_info,
-        get_highlighted_reserves, get_cache_date,
-        save_daily_snapshot, get_all_tracked_countries,
-        get_default_chart_countries, get_period_options,
-        build_history_dataframe,
-    )
-    from app.reserve_signals import (
-        compute_all_signals, compute_composite_signal,
-    )
-    import plotly.graph_objects as go
+    tab_reserves.render(_grafik_kilidi)
 
-    st.subheader("🏦 Merkez Bankası Altın Rezervleri")
-    st.caption("Kaynak: WGC/IMF IFS tarihsel veri (2018+) + Wikipedia güncel veri")
-
-    reserves = fetch_reserve_data()
-    cache_date = get_cache_date()
-
-    # Günlük snapshot'ı kaydet
-    if reserves:
-        save_daily_snapshot(reserves)
-
-    if cache_date:
-        st.caption(f"📅 Son güncelleme: {cache_date}")
-
-    if reserves:
-        # ── Öne çıkan ülkeler (kartlar) ──
-        highlighted = get_highlighted_reserves(reserves)
-        if highlighted:
-            st.markdown("##### 🌍 Öne Çıkan Ülkeler")
-            st.caption("ℹ️ **Altın Payı**: Ülkenin toplam döviz rezervleri içinde altının yüzdesel ağırlığı (IMF/WGC verisi)")
-            cols = st.columns(5)
-            for i, r in enumerate(highlighted):
-                with cols[i % 5]:
-                    tonnes_str = f"{r.gold_tonnes:,.1f}" if r.gold_tonnes else "—"
-                    pct_str = f"{r.pct_of_reserves:.1f}%" if r.pct_of_reserves else "—"
-                    rank_str = f"#{r.rank}" if r.rank else "—"
-                    st.metric(
-                        label=f"{r.country_tr} ({rank_str})",
-                        value=f"{tonnes_str} ton",
-                        delta=f"Altın Payı: {pct_str}",
-                        delta_color="off",
-                    )
-
-        # ── DEĞİŞİM GRAFİĞİ ──
-        st.markdown("---")
-        st.markdown("##### 📈 Rezerv Değişim Takibi")
-        st.caption(
-            "ℹ️ 2018'den bugüne çeyreklik WGC/IMF IFS verisi + günlük Wikipedia snapshot'ları birleştirilir. "
-            "Yeni veriler her gün otomatik kaydedilir."
-        )
-
-        # Kontroller
-        _chart_col1, _chart_col2 = st.columns([3, 1])
-
-        # Ülke seçimi
-        all_tracked = get_all_tracked_countries()
-        default_countries = get_default_chart_countries()
-
-        # Kayıtlı ülkelerde olmayanları varsayılanlara ekle (ilk gün için)
-        if not all_tracked:
-            all_tracked = [r.country_tr for r in reserves if r.gold_tonnes]
-
-        # Varsayılanları mevcut listede olanlarla filtrele
-        valid_defaults = [c for c in default_countries if c in all_tracked]
-
-        with _chart_col1:
-            selected_countries = st.multiselect(
-                "Ülke Seçimi",
-                options=all_tracked,
-                default=valid_defaults,
-                key="reserve_chart_countries",
-            )
-
-        with _chart_col2:
-            period_opts = get_period_options()
-            period_key = st.selectbox(
-                "Periyot",
-                options=list(period_opts.keys()),
-                format_func=lambda k: period_opts[k],
-                index=3,  # varsayılan: Son 1 Yıl
-                key="reserve_chart_period",
-            )
-
-        # Grafik modu: ton / % değişim
-        show_pct = st.toggle("% Değişim Göster", value=False, key="reserve_pct_toggle")
-
-        if selected_countries:
-            tonnes_df, pct_df = build_history_dataframe(selected_countries, period_key)
-            _hist_days = len(tonnes_df) if tonnes_df is not None else 0
-
-            if tonnes_df is not None and _hist_days >= 2:
-                chart_df = pct_df if show_pct else tonnes_df
-
-                fig = go.Figure()
-                for col in chart_df.columns:
-                    fig.add_trace(go.Scatter(
-                        x=chart_df.index,
-                        y=chart_df[col],
-                        name=col,
-                        mode="lines+markers",
-                        hovertemplate=(
-                            f"<b>{col}</b><br>"
-                            "Tarih: %{x|%d.%m.%Y}<br>"
-                            + ("Değişim: %{y:.2f}%<extra></extra>" if show_pct
-                               else "Miktar: %{y:,.1f} ton<extra></extra>")
-                        ),
-                    ))
-
-                y_title = "Değişim (%)" if show_pct else "Altın (Ton)"
-                fig.update_layout(
-                    height=500,
-                    yaxis_title=y_title,
-                    xaxis_title="",
-                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-                    margin=dict(l=60, r=20, t=30, b=40),
-                    hovermode="x",
-                    template="plotly_dark",
-                    dragmode=False if _grafik_kilidi else "zoom",
-                )
-
-                if show_pct:
-                    fig.add_hline(y=0, line_dash="dash", line_color="gray", opacity=0.5)
-
-                st.plotly_chart(turkce_tarih_ekseni(fig), width="stretch", key="reserve_change_chart", config=_plotly_config)
-
-                # Uyarı: az veri
-                if _hist_days < 30:
-                    st.info(
-                        f"📊 Şu anda **{_hist_days} günlük** veri mevcut. "
-                        f"Anlamlı trend analizi için en az 30 günlük veri gereklidir. "
-                        f"Veriler her gün otomatik olarak birikmektedir."
-                    )
-
-                # Değişim özet tablosu
-                if len(pct_df) >= 2:
-                    with st.expander("📊 Değişim Özeti", expanded=True):
-                        summary_rows = []
-                        for col in pct_df.columns:
-                            valid = pct_df[col].dropna()
-                            if len(valid) >= 2:
-                                first_val = tonnes_df[col].dropna().iloc[0]
-                                last_val = tonnes_df[col].dropna().iloc[-1]
-                                change = last_val - first_val
-                                pct_change = valid.iloc[-1]
-                                summary_rows.append({
-                                    "Ülke": col,
-                                    "Başlangıç (Ton)": f"{first_val:,.1f}",
-                                    "Güncel (Ton)": f"{last_val:,.1f}",
-                                    "Değişim (Ton)": f"{change:+,.1f}",
-                                    "Değişim (%)": f"{pct_change:+.2f}%",
-                                })
-                        if summary_rows:
-                            st.dataframe(
-                                pd.DataFrame(summary_rows),
-                                width="stretch",
-                                hide_index=True,
-                            )
-            else:
-                # Veri yetersiz — tablo formatında güncel verileri göster
-                st.warning(
-                    "📊 Grafik için yeterli tarihsel veri henüz birikmemiş. "
-                    "Veriler her gün otomatik kaydedilir. Aşağıda seçili ülkelerin **güncel** rezerv miktarları görüntülenmektedir."
-                )
-                _sel_table = []
-                for r in reserves:
-                    if r.country_tr in selected_countries:
-                        _sel_table.append({
-                            "Ülke": r.country_tr,
-                            "Sıra": f"#{r.rank}" if r.rank else "—",
-                            "Altın (Ton)": f"{r.gold_tonnes:,.1f}" if r.gold_tonnes else "—",
-                            "Altın Payı (%)": f"{r.pct_of_reserves:.1f}" if r.pct_of_reserves else "—",
-                        })
-                if _sel_table:
-                    st.dataframe(pd.DataFrame(_sel_table), width="stretch", hide_index=True)
-        else:
-            st.info("Grafik için en az bir ülke seçin.")
-
-        # ── MB SİNYAL PANELİ ──
-        st.markdown("---")
-        st.markdown("##### 📡 Merkez Bankası Sinyal Paneli")
-        st.caption(
-            "Merkez bankalarının altın alım/satım hareketlerinden üretilen yön sinyalleri. "
-            "Veriler **WGC/IMF IFS** çeyreklik tarihsel verisine (2018+) dayanır."
-        )
-
-        # Sinyal hesapla: tüm takip edilen ülkelerle
-        _signal_countries = get_all_tracked_countries()
-        _signal_countries_hist = [c for c in _signal_countries
-                                  if c not in ("IMF", "BIS", "Avrupa Merkez Bankası")]
-        _sig_df, _ = build_history_dataframe(_signal_countries_hist, "tumu")
-
-        # Altın fiyat korelasyonu için çeyreklik ons fiyatı hazırla
-        _gold_q = None
-        try:
-            import yfinance as yf
-            _gold_hist = yf.Ticker("GC=F").history(period="7y", interval="3mo")
-            if _gold_hist is not None and len(_gold_hist) > 4:
-                _gold_q = _gold_hist["Close"]
-                _gold_q.index = pd.to_datetime(_gold_q.index).tz_localize(None)
-        except Exception:
-            pass
-
-        if _sig_df is not None and len(_sig_df) >= 2:
-            _signals = compute_all_signals(
-                _sig_df,
-                reserves_data=reserves,
-                gold_prices_quarterly=_gold_q,
-            )
-            _composite = compute_composite_signal(_signals)
-
-            if _composite:
-                # ── 1) ANA GÖSTERGE: Bileşik sinyal — büyük ve net ──
-                _comp_col1, _comp_col2 = st.columns([3, 1])
-                with _comp_col1:
-                    st.metric(
-                        label=f"{_composite.emoji} {_composite.name}",
-                        value=_composite.label,
-                        delta=f"Puan: {_composite.value:+.0f} / 100",
-                        delta_color="normal" if _composite.value >= 0 else "inverse",
-                    )
-                with _comp_col2:
-                    st.caption("Sinyal gücü")
-                    _bar_val = max(0, min(100, int((_composite.value + 100) / 2)))
-                    st.progress(_bar_val)
-                    st.caption(f"{len(_signals)} gösterge · {len(_sig_df.columns)} MB")
-
-                # ── 2) ÖNE ÇIKAN GÖSTERGELER: En değerli 3 sinyal öne çıkar ──
-                # Sıralama: mutlak değere göre en güçlü 3 sinyal
-                _sorted_signals = sorted(_signals, key=lambda s: abs(s.value), reverse=True)
-                _top_signals = _sorted_signals[:3]
-                _other_signals = _sorted_signals[3:]
-
-                if _top_signals:
-                    st.markdown("")
-                    _top_cols = st.columns(len(_top_signals))
-                    for i, _s in enumerate(_top_signals):
-                        with _top_cols[i]:
-                            st.metric(
-                                label=f"{_s.emoji} {_s.name}",
-                                value=f"{_s.value:+.0f}",
-                                delta=_s.label,
-                                delta_color="normal" if _s.value >= 0 else "inverse",
-                            )
-
-                # ── 3) DİĞER GÖSTERGELER: Expander içinde detay ──
-                if _other_signals:
-                    with st.expander(f"📊 Diğer Göstergeler ({len(_other_signals)})", expanded=False):
-                        for _s in _other_signals:
-                            _d_col1, _d_col2 = st.columns([1, 3])
-                            with _d_col1:
-                                st.metric(
-                                    label=f"{_s.emoji} {_s.name}",
-                                    value=f"{_s.value:+.0f}",
-                                )
-                            with _d_col2:
-                                st.caption(_s.detail)
-
-                # ── 4) TÜM SİNYAL DETAYLARI: Meraklılar için ──
-                with st.expander("🔍 Tüm Sinyal Detayları", expanded=False):
-                    for _s in _sorted_signals:
-                        st.markdown(f"**{_s.emoji} {_s.name}** — {_s.label} ({_s.value:+.0f})")
-                        st.caption(_s.detail)
-                    st.markdown("---")
-                    st.caption(
-                        "⚠️ Bu sinyaller yalnızca bilgi amaçlıdır, yatırım tavsiyesi değildir. "
-                        "Çeyreklik veriye dayandığından kısa vadeli kararlar için yeterli olmayabilir."
-                    )
-        else:
-            st.info("Sinyal hesaplamak için yeterli tarihsel veri birikmemiş.")
-
-        # ── Tam tablo ──
-        st.markdown("---")
-        with st.expander("📊 Tüm Ülkeler (İlk 50)", expanded=False):
-            table_data = []
-            for r in reserves[:50]:
-                table_data.append({
-                    "Sıra": str(r.rank) if r.rank else "—",
-                    "Ülke": r.country_tr,
-                    "Altın (Ton)": f"{r.gold_tonnes:,.1f}" if r.gold_tonnes else "—",
-                    "Altın Payı (%)": f"{r.pct_of_reserves:.1f}" if r.pct_of_reserves else "—",
-                })
-            st.dataframe(
-                pd.DataFrame(table_data),
-                width="stretch",
-                hide_index=True,
-            )
-
-        # ── Kaynak listesi ──
-        with st.expander("📎 Veri Kaynakları", expanded=False):
-            sources = get_reserve_sources_info()
-            reserve_df = pd.DataFrame([
-                {
-                    "Kurum": s["name"],
-                    "Kod": s["code"],
-                    "Güncelleme": s["update_freq"],
-                }
-                for s in sources
-            ])
-            st.dataframe(reserve_df, width="stretch", hide_index=True)
-    else:
-        st.warning("Altın rezerv verileri yüklenemedi. İnternet bağlantınızı kontrol edin.")
-
-# ═══════════════════════════════════════════════════════════════
-# TAB 8 — BİLGİ REHBERİ
-# ═══════════════════════════════════════════════════════════════
 with tab8:
-    st.subheader("📖 Bilgi Rehberi")
-    st.caption("Altın piyasası, ALTINS1 sertifikası ve analiz yöntemleri hakkında kapsamlı rehber")
-
-    st.info(
-        "📝 Bu bölüm hazırlanıyor. Yakında burada altın piyasası, ALTINS1 sertifikası, "
-        "ons-gram-dolar ilişkileri, merkez bankası rezervleri ve "
-        "programın sunduğu analizlerin nasıl yorumlanacağına dair "
-        "kapsamlı bir rehber yer alacak."
-    )
-
-    # İçindekiler (yapı hazır, içerik sonra eklenecek)
-    st.markdown("##### 📑 İçindekiler")
-    st.markdown("""
-1. **ALTINS1 Nedir?** — Sertifikanın yapısı, gram altınla ilişkisi, makas kavramı
-2. **Altın Fiyatı Nasıl Oluşur?** — Ons altın, dolar/TL, gram altın TL ilişkisi
-3. **Makas Analizi** — Spread nedir, alım-satım sinyalleri ne anlama gelir
-4. **Merkez Bankası Altın Rezervleri** — Neden önemli, altın fiyatını nasıl etkiler
-5. **Sinyal Paneli Nasıl Okunur?** — Her göstergenin anlamı ve yorumu
-6. **Temel Analiz vs Teknik Analiz** — Altın için hangi yöntemler kullanılır
-7. **Sık Sorulan Sorular**
-""")
-
-    st.caption("💡 Bu rehber, programı ilk kez kullananlar için hazırlanmaktadır.")
+    tab_guide.render()
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -1419,3 +552,4 @@ with st.expander("E-posta Ayarları ve Gönderim", expanded=False):
 # ── Footer ─────────────────────────────────────────────────────
 st.markdown("---")
 st.caption("ALTINS1 Analiz v0.5.0 | Yalnızca bilgi amaçlıdır, yatırım tavsiyesi değildir.")
+

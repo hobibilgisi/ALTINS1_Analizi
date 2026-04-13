@@ -14,6 +14,54 @@ from app.config import ALTINS1_GRAM_KATSAYI
 
 logger = logging.getLogger(__name__)
 
+# ── Merkezi Grafik Sabitleri ───────────────────────────────────
+_DEFAULT_TEMPLATE = "plotly_dark"
+_DEFAULT_HEIGHT = 750
+_DEFAULT_MARGIN = dict(l=50, r=50, t=50, b=80)
+
+# Renk paleti — tüm modüllerde tek kaynaktan
+COLORS = {
+    "altins1": "#42a5f5",
+    "gram_altin": "#ffa726",
+    "ons_altin": "#ab47bc",
+    "gumus": "#c0c0c0",
+    "gold": "#ffd700",
+    "faiz": "#ef5350",
+    "buy": "#26a69a",
+    "sell": "#ef5350",
+    "strong_buy": "#00e676",
+    "strong_sell": "#d50000",
+    "ema20": "#29b6f6",
+    "ema50": "#66bb6a",
+    "ema100": "#ab47bc",
+    "ema200": "#ef5350",
+    "neutral": "#78909c",
+}
+
+
+def apply_base_layout(fig: go.Figure, title: str = "",
+                       height: int = _DEFAULT_HEIGHT,
+                       yaxis_title: str = "",
+                       **extra) -> go.Figure:
+    """Tüm grafiklere uygulanacak ortak layout ayarları.
+
+    Tek bir yerden kontrol edilir — template, margin, height.
+    """
+    layout = dict(
+        title=title,
+        template=_DEFAULT_TEMPLATE,
+        height=height,
+        margin=_DEFAULT_MARGIN,
+        legend=dict(orientation="h", yanchor="top", y=-0.15,
+                    xanchor="center", x=0.5),
+    )
+    if yaxis_title:
+        layout["yaxis_title"] = yaxis_title
+    layout.update(extra)
+    fig.update_layout(**layout)
+    return fig
+
+
 # ── Türkçe ay adları (tüm grafikler için merkezi) ─────────────
 _AY_TR = {
     1: "Oca", 2: "Şub", 3: "Mar", 4: "Nis", 5: "May", 6: "Haz",
@@ -193,13 +241,8 @@ def create_price_chart(
             row=2, col=1,
         )
 
-    fig.update_layout(
-        title=title,
-        template="plotly_dark",
-        xaxis_rangeslider_visible=False,
-        height=1000,
-        margin=dict(l=50, r=50, t=50, b=30),
-    )
+    apply_base_layout(fig, title=title, height=1000,
+                      xaxis_rangeslider_visible=False)
     return fig
 
 
@@ -274,13 +317,8 @@ def create_spread_chart(
         annotation_position="top left",
     )
 
-    fig.update_layout(
-        title="ALTINS1 Makas Analizi — Cari vs Beklenen Fiyat (%)",
-        template="plotly_dark",
-        yaxis_title="Makas (%)",
-        height=750,
-        margin=dict(l=50, r=50, t=50, b=30),
-    )
+    apply_base_layout(fig, title="ALTINS1 Makas Analizi — Cari vs Beklenen Fiyat (%)",
+                      yaxis_title="Makas (%)")
     return fig
 
 
@@ -365,12 +403,7 @@ def create_altins1_vs_expected_chart(
         )
         fig.update_yaxes(title_text=sec_label, secondary_y=True)
 
-    fig.update_layout(
-        title=f"ALTINS1 Analizi ({ccy})",
-        template="plotly_dark",
-        height=750,
-        margin=dict(l=50, r=50, t=50, b=30),
-    )
+    apply_base_layout(fig, title=f"ALTINS1 Analizi ({ccy})")
     fig.update_yaxes(title_text=f"ALTINS1 ({sym})", secondary_y=False if use_secondary else None)
     return fig
 
@@ -439,15 +472,8 @@ def create_overlay_chart(
             )
         )
 
-    fig.update_layout(
-        title=f"Normalize Karşılaştırma ({ccy})",
-        template="plotly_dark",
-        yaxis_title="",
-        yaxis=dict(showticklabels=False),
-        height=750,
-        margin=dict(l=50, r=50, t=50, b=30),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-    )
+    apply_base_layout(fig, title=f"Normalize Kar\u015f\u0131la\u015ft\u0131rma ({ccy})",
+                      yaxis=dict(showticklabels=False))
     return fig
 
 
@@ -478,13 +504,8 @@ def create_comparison_chart(
         )
     )
 
-    fig.update_layout(
-        title="ALTINS1 vs Gram Altın TL Karşılaştırma",
-        template="plotly_dark",
-        yaxis_title="Fiyat (TL)",
-        height=750,
-        margin=dict(l=50, r=50, t=50, b=30),
-    )
+    apply_base_layout(fig, title="ALTINS1 vs Gram Alt\u0131n TL Kar\u015f\u0131la\u015ft\u0131rma",
+                      yaxis_title="Fiyat (TL)")
     return fig
 
 
@@ -528,13 +549,7 @@ def create_gold_silver_chart(
         secondary_y=True,
     )
 
-    fig.update_layout(
-        title=f"{unit_label} Altın vs {unit_label} Gümüş ({ccy})",
-        template="plotly_dark",
-        height=750,
-        margin=dict(l=50, r=50, t=50, b=30),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-    )
+    apply_base_layout(fig, title=f"{unit_label} Altın vs {unit_label} Gümüş ({ccy})")
     fig.update_yaxes(title_text=f"{unit_label} Altın ({sym})", secondary_y=False)
     fig.update_yaxes(title_text=f"{unit_label} Gümüş ({sym})", secondary_y=True)
     return fig

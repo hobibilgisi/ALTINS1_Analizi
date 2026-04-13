@@ -4,11 +4,8 @@ Makas analizine göre alım/satım sinyalleri üretir.
 """
 
 import logging
-from dataclasses import dataclass
 from enum import Enum
-from typing import List, Optional
-
-import pandas as pd
+from typing import Optional
 
 from app.config import SignalThresholds
 
@@ -21,17 +18,6 @@ class SignalType(Enum):
     NEUTRAL = "NÖTR"
     SELL = "SATIM"
     STRONG_SELL = "GÜÇLÜ SATIM"
-
-
-@dataclass
-class Signal:
-    """Tek bir sinyal kaydı."""
-    timestamp: str
-    signal_type: SignalType
-    spread_pct: float
-    altins1_price: float
-    gram_gold_tl: float
-    message: str
 
 
 def evaluate_signal(spread_pct: float, thresholds: Optional[SignalThresholds] = None) -> SignalType:
@@ -69,17 +55,3 @@ def generate_signal_message(signal_type: SignalType, spread_pct: float) -> str:
         SignalType.STRONG_SELL: f"🔴 GÜÇLÜ SATIM SİNYALİ! Makas: %{spread_pct:.2f} — ALTINS1 aşırı primli!",
     }
     return messages.get(signal_type, "Sinyal değerlendirilemedi.")
-
-
-def evaluate_spread_series(
-    spread_series: pd.Series,
-    thresholds: Optional[SignalThresholds] = None,
-) -> pd.Series:
-    """Tarihsel makas serisini sinyal serisine dönüştürür.
-
-    Returns:
-        SignalType değerlerinden oluşan seri
-    """
-    if thresholds is None:
-        thresholds = SignalThresholds()
-    return spread_series.apply(lambda s: evaluate_signal(s, thresholds))

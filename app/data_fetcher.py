@@ -177,12 +177,17 @@ def fetch_truncgil() -> Optional[Dict[str, Any]]:
     Returns:
         Ham API yanıtı (dict) veya None
     """
+    session = requests.Session()
+    session.headers.update(_HEADERS)
     for attempt in range(3):
         try:
-            r = requests.get(TRUNCGIL_API_URL, headers=_HEADERS, timeout=15)
+            r = session.get(TRUNCGIL_API_URL, timeout=10)
             r.raise_for_status()
             # API bazen bozuk JSON döndürebiliyor — agresif temizleme
             text = r.text
+            if not text or len(text) < 100:
+                logger.warning(f"truncgil: çok kısa yanıt ({len(text)} byte), tekrar deniyor")
+                continue
             text = re.sub(r",\s*}", "}", text)
             text = re.sub(r",\s*]", "]", text)
             text = re.sub(r"}\s*{", "},{", text)  # missing comma between objects
@@ -199,6 +204,10 @@ def fetch_truncgil() -> Optional[Dict[str, Any]]:
                     text = re.sub(r'[^\x20-\x7E\xC0-\xFF{}[\]:,."\'\\ığüşöçİĞÜŞÖÇ\s]', '', text)
                     data = json.loads(text)
             logger.info(f"truncgil: veri çekildi ({data.get('Update_Date', '?')})")
+            # Kritik veri kontrolü — JSON onarılmış ama GRA eksik olabilir
+            if "GRA" not in data:
+                logger.warning("truncgil: JSON onarıldı ama GRA anahtarı eksik, tekrar deniyor")
+                continue
             return data
         except Exception as e:
             logger.warning(f"truncgil API deneme {attempt + 1}/3 başarısız: {e}")
@@ -295,7 +304,7 @@ def fetch_current_prices() -> Dict[str, Any]:
         except Exception as e:
             logger.error(f"yfinance hatası ({symbol}): {e}")
 
-    # ── 4) Hesaplamalar ─────────────────────────────────────
+    # ── 4) Fallback: Truncgil başarısızsa yfinance'den gram altın hesapla ──
     ons = result.get("ons_altin_usd")
     usdtry = result.get("dolar_tl")
     gram_tl = result.get("gram_altin_tl")
@@ -304,11 +313,33 @@ def fetch_current_prices() -> Dict[str, Any]:
     if ons and usdtry:
         result["gram_altin_hesaplanan"] = (ons * usdtry) / TROY_OUNCE_GRAM
 
-    # Beklenen ALTINS1 = Gram Altın TL × 0.01
+    # Truncgil'den gram altın gelemediyse, yfinance'den hesapla
+    if not gram_tl and ons and usdtry:
+        gram_tl = (ons * usdtry) / TROY_OUNCE_GRAM
+        result["gram_altin_tl"] = gram_tl
+        result["kaynak_truncgil"] = False
+        logger.warning("truncgil başarısız — gram altın yfinance'den hesaplandı")
+
+    # ── 5) Disk cache'den eksik alanları tamamla ─────────────
+    _critical_keys = ["altins1_fiyat", "gram_altin_tl", "dolar_tl", "ons_altin_usd"]
+    _missing = [k for k in _critical_keys if not result.get(k)]
+    if _missing:
+        cached = load_prices_from_cache()
+        if cached:
+            for k in _missing:
+                if cached.get(k):
+                    result[k] = cached[k]
+                    logger.info(f"disk cache'den tamamlandı: {k}={cached[k]}")
+            # Cache'den gelen gram_altin_tl ile eksik hesaplamaları güncelle
+            gram_tl = result.get("gram_altin_tl")
+            ons = result.get("ons_altin_usd")
+            usdtry = result.get("dolar_tl")
+            altins1_price = result.get("altins1_fiyat")
+
+    # ── 6) Hesaplamalar ─────────────────────────────────────
     if gram_tl:
         result["beklenen_altins1"] = gram_tl * ALTINS1_GRAM_KATSAYI
 
-    # Makas (%)
     if altins1_price and gram_tl:
         beklenen = gram_tl * ALTINS1_GRAM_KATSAYI
         result["makas_pct"] = ((altins1_price - beklenen) / beklenen) * 100
@@ -316,7 +347,7 @@ def fetch_current_prices() -> Dict[str, Any]:
     # Başarılı veri varsa disk cache'e yaz (mesai dışı kullanım için)
     if altins1_price and gram_tl:
         save_prices_to_cache(result)
-        result["_cache_time"] = datetime.now().isoformat()
+        result["_cache_time"] = datetime.now(_TZ_ISTANBUL).isoformat()
 
     return result
 

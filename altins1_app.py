@@ -229,11 +229,7 @@ st.markdown(f"""
 # ── Veri Çekme (cache'li) ─────────────────────────────────────
 @st.cache_data(ttl=config.cache_ttl_sec)
 def load_prices():
-    prices = fetch_current_prices()
-    # Başarısız sonuçları cache'leme — bir sonraki render'da tekrar dene
-    if not prices.get("altins1_fiyat") or not prices.get("gram_altin_tl"):
-        st.cache_data.clear()
-    return prices
+    return fetch_current_prices()
 
 
 @st.cache_data(ttl=config.cache_ttl_sec)
@@ -261,13 +257,9 @@ bist_acik = is_bist_open()
 
 # Verileri yükle (canlı çek, başarısızsa cache'den oku)
 prices = load_prices()
-_from_cache = False
-
-if not prices.get("altins1_fiyat") or not prices.get("gram_altin_tl"):
-    cached = load_prices_from_cache()
-    if cached:
-        prices = cached
-        _from_cache = True
+# fetch_current_prices artık kendi içinde disk cache'den eksik alanları tamamlıyor.
+# Burada sadece tamamen boş sonuç kontrolü yapıyoruz.
+_has_live = bool(prices.get("altins1_fiyat")) and bool(prices.get("gram_altin_tl"))
 
 if not bist_acik:
     cache_time = prices.get("_cache_time", "")
@@ -283,7 +275,7 @@ if not bist_acik:
         f"🔒 **BIST seansı kapalı** — Gösterilen veriler son seans verilerine dayanmaktadır. "
         f"(Son güncelleme: {cache_str})"
     )
-elif _from_cache:
+elif not _has_live:
     st.warning(
         "⚠️ Canlı veri çekilemedi, son kaydedilen veriler gösteriliyor. "
         "İnternet bağlantınızı kontrol edin."

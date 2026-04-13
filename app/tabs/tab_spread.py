@@ -41,12 +41,22 @@ def render(ctx: "TabContext") -> None:
 
         # İstatistikler
         stats = spread_statistics(spread_hist)
-        scols = st.columns(6)
-        scols[0].metric("Güncel", f"%{stats['guncel']}" if stats["guncel"] else "—")
-        scols[1].metric("Ortalama", f"%{stats['ortalama']}" if stats["ortalama"] else "—")
-        scols[2].metric("Medyan", f"%{stats['medyan']}" if stats["medyan"] else "—")
-        scols[3].metric("Std", f"{stats['std']}" if stats["std"] else "—")
-        scols[4].metric("Min", f"%{stats['min']}" if stats["min"] else "—")
-        scols[5].metric("Max", f"%{stats['max']}" if stats["max"] else "—")
+
+        _stat_items = [
+            ("Güncel", stats.get("guncel"), "%", "Şu anki makas oranı. ALTINS1'in beklenen fiyattan yüzde kaç uzakta olduğunu gösterir."),
+            ("Ortalama", stats.get("ortalama"), "%", "Seçilen dönemdeki tüm günlerin makas ortalaması. Genel eğilimi gösterir."),
+            ("Medyan", stats.get("medyan"), "%", "Makas değerlerinin tam ortasındaki değer. Uç değerlerden etkilenmez, ortalamadan daha güvenilir bir göstergedir."),
+            ("Std", stats.get("std"), "", "Standart Sapma — makas değerlerinin ne kadar dalgalandığını gösterir. Düşükse piyasa sakin, yüksekse dalgalıdır."),
+            ("Min", stats.get("min"), "%", "Dönem içinde makas oranının düştüğü en düşük değer."),
+            ("Max", stats.get("max"), "%", "Dönem içinde makas oranının çıktığı en yüksek değer."),
+        ]
+
+        # Mobilde 3×2 grid, masaüstünde 6×1 grid
+        _row1 = st.columns(3)
+        _row2 = st.columns(3)
+        _grid = _row1 + _row2
+        for i, (label, value, prefix, tooltip) in enumerate(_stat_items):
+            with _grid[i]:
+                st.metric(label, f"{prefix}{value}" if value is not None else "—", help=tooltip)
     else:
         st.info("Makas analizi için ALTINS1 + gram altın TL tarihsel verisi gereklidir.")

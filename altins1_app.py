@@ -197,25 +197,33 @@ st.markdown(f"""
     }}
     /* Sidebar genişliği: ekranın 1/4'ü (sadece açıkken) */
     section[data-testid="stSidebar"][aria-expanded="true"] {{
-        width: 25vw !important;
-        min-width: 300px;
-        max-width: 480px;
+        width: min(33vw, 400px) !important;
+        min-width: 220px;
+        max-width: 98vw;
     }}
     /* Ana içerik sidebar kapanınca tüm ekrana yayılsın */
     .stMainBlockContainer {{
         max-width: 100% !important;
     }}
     section[data-testid="stSidebar"] .stMetricValue {{
-        font-size: clamp(11px, 2.5vw, 22px) !important;
+        font-size: clamp(10px, 2vw, 22px) !important;
         min-width: 0 !important;
         line-height: 1.1 !important;
         word-break: break-word !important;
+        overflow: visible !important;
+        text-overflow: unset !important;
+        white-space: normal !important;
+        flex-shrink: 1 !important;
     }}
     section[data-testid="stSidebar"] .stMetricLabel {{
-        font-size: clamp(10px, 2vw, 16px) !important;
+        font-size: clamp(9px, 1.7vw, 15px) !important;
         min-width: 0 !important;
         line-height: 1.1 !important;
         word-break: break-word !important;
+        overflow: visible !important;
+        text-overflow: unset !important;
+        white-space: normal !important;
+        flex-shrink: 1 !important;
     }}
     /* Genel metin, paragraf, caption, metric, tablo */
     .stMainBlockContainer p,
@@ -228,10 +236,14 @@ st.markdown(f"""
     .stMainBlockContainer .stCaption,
     .stMainBlockContainer li,
     .stMainBlockContainer div[data-testid="stText"] {{
-        font-size: clamp(11px, 2.5vw, 22px) !important;
+        font-size: clamp(10px, 2vw, 22px) !important;
         min-width: 0 !important;
         line-height: 1.1 !important;
         word-break: break-word !important;
+        overflow: visible !important;
+        text-overflow: unset !important;
+        white-space: normal !important;
+        flex-shrink: 1 !important;
     }}
     /* Metric delta */
     .stMainBlockContainer div[data-testid="stMetricDelta"] {{
@@ -241,10 +253,14 @@ st.markdown(f"""
     .stMainBlockContainer .stCheckbox label span,
     .stMainBlockContainer .stRadio label span,
     .stMainBlockContainer .stSelectbox label {{
-        font-size: clamp(10px, 2vw, 16px) !important;
+        font-size: clamp(9px, 1.7vw, 15px) !important;
         min-width: 0 !important;
         line-height: 1.1 !important;
         word-break: break-word !important;
+        overflow: visible !important;
+        text-overflow: unset !important;
+        white-space: normal !important;
+        flex-shrink: 1 !important;
     }}
     /* Tab etiketleri */
     .stMainBlockContainer button[data-baseweb="tab"] {{

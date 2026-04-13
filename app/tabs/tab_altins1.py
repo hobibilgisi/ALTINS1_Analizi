@@ -78,9 +78,9 @@ def render(ctx: "TabContext") -> None:
             # Son günü sağa uzat (gelecek tarih göstermeden)
             _last_date = _makas_series.index[-1]
             _last_val = _makas_series_int.values[-1]
-            _ext_x = [_last_date + pd.Timedelta(hours=h) for h in (4, 8, 12)]
-            _ext_y = [a1.max() * 1.03] * 3
-            _ext_val = [_last_val] * 3
+            _ext_x = [_last_date + pd.Timedelta(hours=h) for h in (4, 8, 12, 16, 20)]
+            _ext_y = [a1.max() * 1.03] * 5
+            _ext_val = [_last_val] * 5
             fig_vs.add_trace(
                 go.Scatter(
                     x=list(_makas_series.index) + _ext_x,

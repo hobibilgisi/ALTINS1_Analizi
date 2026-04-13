@@ -165,13 +165,13 @@ def apply_chart_font(
         _last_y = _tr.y[-1] if _tr.y[-1] is not None else None
         if _last_y is None:
             continue
-        _ext_x = [_last_x + pd.Timedelta(hours=h) for h in (4, 8, 12)]
+        _ext_x = [_last_x + pd.Timedelta(hours=h) for h in (4, 8, 12, 16, 20)]
         _tr.x = list(_tr.x) + _ext_x
-        _tr.y = list(_tr.y) + [_last_y] * 3
+        _tr.y = list(_tr.y) + [_last_y] * 5
         if _max_date is None or _last_x > _max_date:
             _max_date = _last_x
     if _max_date is not None:
-        fig.update_xaxes(range=[None, _max_date + pd.Timedelta(days=1)])
+        fig.update_xaxes(range=[None, _max_date + pd.Timedelta(hours=24)])
 
     turkce_tarih_ekseni(fig)
     return fig

@@ -7,16 +7,15 @@ from dataclasses import dataclass, field
 from typing import Dict, List
 
 # ── Versiyon Bilgisi (SemVer: MAJOR.MINOR.PATCH) ──────────────
-# MAJOR: Köklü değişiklik (eski ile uyumsuz)
+# MAJOR: 1=Veri çekme | 2=Makas grafiği | 3=Sinyal | 4=Web | 5=Bot
 # MINOR: Yeni özellik (geriye uyumlu)
 # PATCH: Hata düzeltme
-APP_VERSION = "1.3.0"
+APP_VERSION = "4.4.0"
 APP_VERSION_DATE = "2026-04-13"
 APP_VERSION_NOTES = [
     "Tab modül refactoring — her tab bağımsız modül (app/tabs/)",
     "altins1_app.py orkestratöre dönüştürüldü (~1700 → 555 satır)",
     "Type hints eklendi (ui_helpers + tab modülleri)",
-    "Mobil UX iyileştirmeleri (legend, tab wrap, rezerv grafiği)",
     "SemVer versiyon sistemi eklendi",
 ]
 

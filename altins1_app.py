@@ -9,9 +9,11 @@ Makas (%) = (Gerçek ALTINS1 - Beklenen) / Beklenen × 100
 Çalıştırma: streamlit run main.py
 """
 
+import base64
 import logging
 import os
 import sys
+import time
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
@@ -80,6 +82,64 @@ st.markdown("""
 <meta name="apple-mobile-web-app-title" content="ALTINS1 Analiz">
 <meta name="theme-color" content="#ffa726">
 """, unsafe_allow_html=True)
+
+# ── Açılış Animasyonu (Splash Screen) ─────────────────────────
+if "splash_shown" not in st.session_state:
+    st.session_state.splash_shown = False
+    st.session_state.splash_start = time.time()
+
+if not st.session_state.splash_shown:
+    _elapsed = time.time() - st.session_state.splash_start
+    if _elapsed >= 4.5:
+        st.session_state.splash_shown = True
+        st.rerun()
+    else:
+        st_autorefresh(interval=500, key="splash_autorefresh")
+        _gif_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "altıns1_logo.gif")
+        with open(_gif_path, "rb") as _f:
+            _gif_b64 = base64.b64encode(_f.read()).decode()
+        st.markdown(f"""
+        <style>
+        html, body, [data-testid="stAppViewContainer"] {{
+            background-color: #000000 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }}
+        [data-testid="stHeader"],
+        [data-testid="stSidebar"],
+        [data-testid="stDecoration"],
+        [data-testid="stStatusWidget"],
+        [data-testid="stToolbar"],
+        #MainMenu, footer {{
+            display: none !important;
+        }}
+        .stMainBlockContainer, .block-container {{
+            padding: 0 !important;
+            max-width: 100vw !important;
+        }}
+        .splash-wrapper {{
+            display: flex;
+            width: 100vw;
+            height: 100vh;
+            justify-content: center;
+            align-items: center;
+            background: #000000;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 9999;
+        }}
+        .splash-wrapper img {{
+            max-width: 70vw;
+            max-height: 70vh;
+            object-fit: contain;
+        }}
+        </style>
+        <div class="splash-wrapper">
+            <img src="data:image/gif;base64,{_gif_b64}" alt="ALTINS1 Logo">
+        </div>
+        """, unsafe_allow_html=True)
+        st.stop()
 
 # ── Sidebar ────────────────────────────────────────────────────
 with st.sidebar:

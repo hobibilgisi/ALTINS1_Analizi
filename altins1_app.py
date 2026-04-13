@@ -23,7 +23,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from app.config import (
     AppConfig, SignalThresholds,
     ALTINS1_GRAM_KATSAYI,
-    APP_VERSION, APP_VERSION_DATE, APP_VERSION_NOTES,
+    APP_VERSION, APP_VERSION_FULL, APP_BUILD,
+    APP_VERSION_DATE, APP_VERSION_NOTES,
 )
 from app.data_fetcher import (
     fetch_current_prices, fetch_all_history, fetch_altins1_mynet,
@@ -555,10 +556,10 @@ st.markdown("---")
 
 _footer_cols = st.columns([3, 1])
 with _footer_cols[0]:
-    st.caption(f"ALTINS1 Analiz v{APP_VERSION} | Yalnızca bilgi amaçlıdır, yatırım tavsiyesi değildir.")
+    st.caption(f"ALTINS1 Analiz v{APP_VERSION_FULL} | Yalnızca bilgi amaçlıdır, yatırım tavsiyesi değildir.")
 with _footer_cols[1]:
     with st.expander("📋 Güncelleme Notu"):
-        st.markdown(f"**v{APP_VERSION}** — {APP_VERSION_DATE}")
+        st.markdown(f"**v{APP_VERSION_FULL}** — {APP_VERSION_DATE}")
         for _note in APP_VERSION_NOTES:
             st.markdown(f"- {_note}")
 

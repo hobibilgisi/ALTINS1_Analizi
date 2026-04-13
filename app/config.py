@@ -6,17 +6,18 @@ Tüm sabitler, eşik değerleri ve kaynak tanımları burada tutulur.
 from dataclasses import dataclass, field
 from typing import Dict, List
 
-# ── Versiyon Bilgisi (SemVer: MAJOR.MINOR.PATCH) ──────────────
+# ── Versiyon Bilgisi (SemVer: MAJOR.MINOR.PATCH.BUILD) ────────
 # MAJOR: 1=Veri çekme | 2=Makas grafiği | 3=Sinyal | 4=Web | 5=Bot
 # MINOR: Yeni özellik (geriye uyumlu)
 # PATCH: Hata düzeltme
+# BUILD: Her değişiklik için artan 4 basamaklı sayaç (0001, 0002, ...)
 APP_VERSION = "4.4.0"
+APP_BUILD = "0021"
+APP_VERSION_FULL = f"{APP_VERSION}.{APP_BUILD}"
 APP_VERSION_DATE = "2026-04-13"
 APP_VERSION_NOTES = [
-    "Tab modül refactoring — her tab bağımsız modül (app/tabs/)",
-    "altins1_app.py orkestratöre dönüştürüldü (~1700 → 555 satır)",
-    "Type hints eklendi (ui_helpers + tab modülleri)",
-    "SemVer versiyon sistemi eklendi",
+    "Versiyon sistemi BUILD numarası eklendi (4 basamak)",
+    "Her değişiklik kendi numarasıyla kayıt altında",
 ]
 
 # ── Troy Ounce sabiti ──────────────────────────────────────────

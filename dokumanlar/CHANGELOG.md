@@ -1,10 +1,45 @@
 # Changelog — ALTINS1 Analiz
 
 Tüm önemli değişiklikler bu dosyada kaydedilir.
+Versiyon formatı: **SemVer** (MAJOR.MINOR.PATCH)
 
 ---
 
-## [0.5.0] — 2026-04-10
+## [1.1.0] — 2026-04-13
+
+### Yapısal Refactoring — Tab Modül Sistemi
+- **Tab modülleri**: 8 tab `app/tabs/` paketine çıkarıldı. Her tab bağımsız `render()` fonksiyonu ile çalışır.
+- **TabContext dataclass**: Tab modüllerine ortak veri (seriler, fiyatlar, eşikler, UI ayarları) taşır.
+- **altins1_app.py**: ~1,700 satırdan 555 satıra düşürüldü (%67 azalma). Artık saf orkestratör.
+- **Type hints**: `ui_helpers.py` ve tüm tab modüllerine tip belirteçleri eklendi.
+- **Versiyon sistemi**: SemVer (MAJOR.MINOR.PATCH) `config.py`'ye eklendi.
+
+### Mobil UX İyileştirmeleri
+- Grafik legendı mobilde grafik altına taşındı
+- Tab başlıkları küçük ekranlarda wrap + seçili tab altı çizgi
+- Rezerv grafiği: varsayılan ABD/Çin/TR, % değişim modu, 1-2-6-12 ay periyotlar
+
+### Dokümantasyon
+- `MIMARI_RAPOR.md` oluşturuldu ve güncellendi
+- MD dosyaları `dokumanlar/` klasörüne taşındı
+
+### Yeni Dosyalar
+- `app/tabs/__init__.py` — TabContext dataclass
+- `app/tabs/tab_altins1.py` — ALTINS1 Gerçek vs Beklenen
+- `app/tabs/tab_spread.py` — Makas analizi
+- `app/tabs/tab_normalize.py` — Normalize karşılaştırma
+- `app/tabs/tab_ons.py` — Ons Altın XAU/USD
+- `app/tabs/tab_gold_silver.py` — Altın vs Gümüş
+- `app/tabs/tab_news.py` — Haberler
+- `app/tabs/tab_reserves.py` — MB Rezervleri + Sinyaller
+- `app/tabs/tab_guide.py` — Bilgi Rehberi
+- `app/ui_helpers.py` — UI yardımcı fonksiyonları (mevcut koddan ayırma)
+- `app/data_preparer.py` — Veri hazırlama modülü (mevcut koddan ayırma)
+- `dokumanlar/MIMARI_RAPOR.md` — Teknik mimari raporu
+
+---
+
+## [1.0.2] — 2026-04-10
 
 ### Eklenen Özellikler — Tarihsel MB Altın Rezerv Verisi & Sinyal Analizi
 - **Tarihsel Veri Entegrasyonu**: WGC/IMF IFS kaynaklı 11 ülke × 32 çeyreklik dönem (2018-Q1 → 2025-Q4) gömülü veri. Wikipedia güncel snapshot'ları ile birleştirildi.
@@ -27,7 +62,7 @@ Tüm önemli değişiklikler bu dosyada kaydedilir.
 
 ---
 
-## [0.4.0] — 2026-04-10
+## [1.0.1] — 2026-04-10
 
 ### Düzeltmeler (Mobil UX)
 - **Grafik Kilidi**: Sidebar'da "📌 Grafik Kilidi" toggle eklendi. Varsayılan: AÇIK. Mobilde grafiklere dokunma artık yanlışlıkla yakınlaştırma yapmaz. Kaydırma ve tarih değerlerini okuma rahatlaştı.

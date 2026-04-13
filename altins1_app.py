@@ -95,8 +95,8 @@ if not st.session_state.splash_shown:
         st.rerun()
     else:
         st_autorefresh(interval=500, key="splash_autorefresh")
-        _gif_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "altıns1_logo.gif")
-        with open(_gif_path, "rb") as _f:
+        _webp_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "altins1_logo_transparent.webp")
+        with open(_webp_path, "rb") as _f:
             _gif_b64 = base64.b64encode(_f.read()).decode()
         st.markdown(f"""
         <style>
@@ -136,7 +136,7 @@ if not st.session_state.splash_shown:
         }}
         </style>
         <div class="splash-wrapper">
-            <img src="data:image/gif;base64,{_gif_b64}" alt="ALTINS1 Logo">
+            <img src="data:image/webp;base64,{_gif_b64}" alt="ALTINS1 Logo">
         </div>
         """, unsafe_allow_html=True)
         st.stop()

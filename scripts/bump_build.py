@@ -96,6 +96,22 @@ def bump_build():
     with open(BUILD_LOG_PATH, "w", encoding="utf-8") as f:
         f.write(log_text)
 
+    # MAJOR versiyon değişikliği kontrolü
+    old_ver_match = re.search(r'APP_VERSION\s*=\s*"([^"]+)"', open(CONFIG_PATH, encoding="utf-8").read())
+    if old_ver_match:
+        old_major = version.split(".")[0]
+        # Önceki commit'teki versiyonu kontrol et
+        try:
+            prev = subprocess.run(
+                ["git", "show", "HEAD:app/config.py"],
+                capture_output=True, text=True, cwd=REPO_ROOT,
+            )
+            prev_ver = re.search(r'APP_VERSION\s*=\s*"([^"]+)"', prev.stdout)
+            if prev_ver and prev_ver.group(1).split(".")[0] != old_major:
+                print("⚠️  MAJOR versiyon değişti! MIMARI_RAPOR.md güncellemeyi unutma!")
+        except Exception:
+            pass
+
     # Değişen dosyaları staging'e ekle
     subprocess.run(["git", "add", CONFIG_PATH, BUILD_LOG_PATH], cwd=REPO_ROOT)
 

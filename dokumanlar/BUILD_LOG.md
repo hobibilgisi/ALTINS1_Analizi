@@ -29,3 +29,4 @@ Format: `BUILD | TARİH | VERSİYON | AÇIKLAMA | GIT HASH`
 | 0020 | 2026-04-13 | 4.4.0 | Grafik padding 3→5 nokta | a6f4b75 |
 | 0021 | 2026-04-13 | 4.4.0 | BUILD numarası sistemi eklendi | — |
 | 0022 | 2026-04-13 | 4.4.0 | 1 dosya değişikliği | c42bccf |
+| 0023 | 2026-04-13 | 4.4.0 | 5 dosya değişikliği | 9b1a29b |

@@ -134,11 +134,11 @@ altins1_analiz/
 ├── data/
 │   └── cache/                 # Önbellek verileri (last_prices.json)
 ├── dokumanlar/                # Proje dokümantasyonu
-│   ├── CHANGELOG.md           # Değişiklik günlüğü
-│   ├── ISLEMLER.md            # İşlem günlüğü
-│   ├── TALIMATLAR.md          # Bu dosya
-│   ├── YAPILACAKLAR.md        # Yapılacaklar listesi
-│   └── WEB_TASIMA_REHBERI.md  # Streamlit Cloud deployment rehberi
+│   ├── BUILD_LOG.md           # Otomatik build kaydı (pre-commit hook)
+│   ├── TALIMATLAR.md          # Bu dosya (kurallar + yapılacaklar)
+│   ├── MIMARI_RAPOR.md        # Teknik mimari (MAJOR değişikliklerde güncellenir)
+│   ├── WEB_TASIMA_REHBERI.md  # Streamlit Cloud deployment rehberi
+│   └── arsiv/                 # Eski loglar (ISLEMLER.md, CHANGELOG.md)
 ├── logs/
 │   └── app.log                # Uygulama logları
 ├── tests/
@@ -230,49 +230,36 @@ python-dateutil>=2.8.0   # Tarih işlemleri
 
 1. **%100 Doğruluk**: Tüm fiyat verileri doğrulanmış kaynaklardan gelmeli
 2. **Aşamalı İlerleme**: Her aşama onaylandıktan sonra bir sonrakine geçilir
-3. **Log Kaydı**: Her işlem ISLEMLER.md'ye kaydedilir
-4. **Talimat Takibi**: Her yeni talimat TALIMATLAR.md'ye eklenir
-5. **Bağlam Koruma**: Her oturum başında TALIMATLAR.md ve ISLEMLER.md okunur
-6. **Test**: Kritik hesaplamalar test edilir
-7. **Hata Yönetimi**: Veri kaynağı erişilemezse yedek kaynağa geçilir
-8. **Modüler Yapı**: Her dosya tek bir sorumluluk taşır
+3. **Otomatik Build Log**: Her commit → pre-commit hook → BUILD_LOG.md + build numarası artışı
+4. **Bağlam Koruma**: Repo memory (`/memories/repo/altins1_analiz.md`) + BUILD_LOG son 10 satır
+5. **Test**: Kritik hesaplamalar test edilir
+6. **Hata Yönetimi**: Veri kaynağı erişilemezse yedek kaynağa geçilir
+7. **Modüler Yapı**: Her dosya tek bir sorumluluk taşır
 
 ---
 
 ## 8. HER OTURUM BAŞINDA VE SONUNDA YAPILACAKLAR (ZORUNLU)
 
-### 8.1 Oturum Başı (her yeni oturum açıldığında otomatik uygulanır)
+### 8.1 Oturum Başı
 
-1. **TALIMATLAR.md** dosyasını oku — proje kuralları, mimari kararlar, yapılacaklar listesi
-2. **ISLEMLER.md** son 50 satırını oku — son oturumdaki işlemler ve açık kalanlar
-3. **Yapılacaklar listesini** (§9) kontrol et — açık maddeler, öncelikler
-4. **`logs/app.log`** son 30 satırını kontrol et — hata veya uyarı var mı?
-5. Kullanıcıya mevcut durumu kısa özetle ve hangi maddeden devam edileceğini sor
-6. Onay alındıktan sonra çalışmaya başla
+1. Repo memory oku (`/memories/repo/altins1_analiz.md`) — proje bağlamı
+2. `dokumanlar/BUILD_LOG.md` son 10 satır — son işlemler
+3. `app/config.py` ilk 20 satır — güncel versiyon
+4. Kullanıcıya kısa özet ver, nereden devam edileceğini sor
 
-### 8.2 Oturum Sonu (kullanıcı oturumu kapatmadan önce otomatik uygulanır)
+### 8.2 Oturum Sonu
 
-> Kullanıcı "bitirdik", "kapatalım", "sonraki oturumda devam", "yeter" vb. dediğinde
-> veya oturum sonlandırılıyormuş gibi göründüğünde bu adımlar uygulanır.
-
-1. **Tamamlanmamış işleri tespit et** — oturumda başlayıp bitirilmemiş veya kısmen yapılmış işler
-2. **ISLEMLER.md sonuna "Oturum Sonu Notu" yaz** — şu bilgileri içerir:
-   - Oturumda tamamlanan işlerin kısa özeti
-   - **Tamamlanmamış / yarım kalan işler** (varsa, detaylı açıklama ile)
-   - Devam noktası: sonraki oturum nereden başlamalı?
-   - Bilinen sorunlar veya dikkat edilmesi gerekenler
-3. **TALIMATLAR.md §9 Yapılacaklar** listesini güncelle — yeni maddeler ekle, tamamlananları ✅ işaretle
-4. Kullanıcıya oturum özetini göster
+1. Yarım kalan işler varsa repo memory'e not ekle
+2. Commit + push (hook otomatik build artırır)
 
 ---
 
 ## 9. YAPILACAKLAR LİSTESİ
 
-> Açık maddeler her oturum başında kontrol edilir. Tamamlanan maddeler ✅ ile işaretlenir.
+> Açık maddeler her oturum başında kontrol edilir.
 
-### Öncelikli (Kısa Vadeli)
+### Öncelikli
 - [ ] Ek sinyal yöntemleri değerlendirme (MB momentum hızlanması, fiyat korelasyonu vb.)
-- [ ] Bazı grafiklerde tarihler hâlâ İngilizce — `turkce_tarih_ekseni()` gözden geçirilmeli
 
 ### Orta Vadeli
 - [ ] Otomatik periyodik yenileme ve geçmiş veri saklama (SQLite/CSV)
@@ -280,33 +267,6 @@ python-dateutil>=2.8.0   # Tarih işlemleri
 - [ ] ALTINS1 için alternatif BIST veri kaynağı araştırma
 - [ ] IMF web scraping otomatik aylık veri güncellemesi
 - [ ] MB alım trendi vs altın fiyat korelasyonu analizi
-
-### Tamamlananlar
-- [x] ALTINS1 BIST fiyat kaynağı bulma → Mynet Finans (82.33 TL, 419 bar tarihsel)
-- [x] Makas formülü: (Gerçek - Beklenen) / Beklenen × 100, Beklenen = Gram Altın × 0.01
-- [x] Sinyal eşikleri: dinamik (tarihsel ortalamaya bağlı) + satım slider
-- [x] Normalize karşılaştırma grafiği (ALTINS1 / Gram Altın TL / Ons Altın USD / GLDTR)
-- [x] Dashboard yeniden tasarım — ALTINS1 makas odaklı, 7 sekme
-- [x] Mesai dışı veri görüntüleme (cache: `data/cache/last_prices.json`)
-- [x] Tarihsel makas grafiğinde tarih indeksleri normalize edildi
-- [x] Gümüş (SI=F) ve GLDTR.IS fon entegrasyonu + 3 yeni sekme
-- [x] Tüm grafiklerde checkbox ile çizgi açma/kapama
-- [x] Haber HTML temizliği + günlük/haftalık bölümler
-- [x] Dinamik alım eşikleri (tarihsel ortalamaya bağlı)
-- [x] Günlük sinyal özeti e-posta bildirim sistemi
-- [x] TL/USD para birimi toggle (Tab1, Tab3, Tab6)
-- [x] Mobil grafik zoom/pan sorunu — Grafik Kilidi toggle + dragmode=False (Oturum 5)
-- [x] Streamlit Cloud deployment — `hobibilgisi/ALTINS1_Analizi` repo, `altins1_app.py` entry point
-- [x] Kod refactoring: `ui_helpers.py`, `data_preparer.py` çıkarıldı, `charts.py` merkezileştirildi
-- [x] `signal_engine.py` ölü kod temizliği
-- [x] Grafik legend mobil uyumu — legend grafik altına taşındı
-- [x] Tab başlıkları wrap + seçili tab underline
-- [x] Responsive CSS (768px breakpoint)
-- [x] Rezerv grafiği: varsayılan ABD/Çin/TR, % değişim modu, 1-2-6-12 ay periyotlar
-- [x] MD dosyaları `dokumanlar/` klasörüne taşındı
-- [x] Kapsamlı yazılım mimari dokümantasyonu (MIMARI_RAPOR.md)
-- [x] Tab modül refactoring: 8 tab `app/tabs/` paketine çıkarıldı, `altins1_app.py` orkestratöre dönüştürüldü (~1,700 → 555 satır)
-- [x] Type hints eklendi (ui_helpers.py + tüm tab modülleri)
 
 ---
 

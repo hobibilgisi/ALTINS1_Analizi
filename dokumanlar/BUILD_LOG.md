@@ -38,3 +38,4 @@ Format: `BUILD | TARİH | VERSİYON | AÇIKLAMA | GIT HASH`
 | 0029 | 2026-04-14 | 4.4.0 | 1 dosya değişikliği | 76e1323 |
 | 0030 | 2026-04-14 | 4.4.0 | 1 dosya değişikliği | d2caa58 |
 | 0031 | 2026-04-14 | 4.4.0 | 1 dosya değişikliği | 579908b |
+| 0032 | 2026-04-14 | 4.4.0 | 1 dosya değişikliği | 118fdb7 |

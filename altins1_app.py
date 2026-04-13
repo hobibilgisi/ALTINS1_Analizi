@@ -206,10 +206,16 @@ st.markdown(f"""
         max-width: 100% !important;
     }}
     section[data-testid="stSidebar"] .stMetricValue {{
-        font-size: {max(_font_size - 2, 14)}px !important;
+        font-size: clamp(11px, 2.5vw, 22px) !important;
+        min-width: 0 !important;
+        line-height: 1.1 !important;
+        word-break: break-word !important;
     }}
     section[data-testid="stSidebar"] .stMetricLabel {{
-        font-size: {max(_font_size - 4, 12)}px !important;
+        font-size: clamp(10px, 2vw, 16px) !important;
+        min-width: 0 !important;
+        line-height: 1.1 !important;
+        word-break: break-word !important;
     }}
     /* Genel metin, paragraf, caption, metric, tablo */
     .stMainBlockContainer p,
@@ -222,7 +228,10 @@ st.markdown(f"""
     .stMainBlockContainer .stCaption,
     .stMainBlockContainer li,
     .stMainBlockContainer div[data-testid="stText"] {{
-        font-size: {_font_size}px !important;
+        font-size: clamp(11px, 2.5vw, 22px) !important;
+        min-width: 0 !important;
+        line-height: 1.1 !important;
+        word-break: break-word !important;
     }}
     /* Metric delta */
     .stMainBlockContainer div[data-testid="stMetricDelta"] {{
@@ -232,7 +241,10 @@ st.markdown(f"""
     .stMainBlockContainer .stCheckbox label span,
     .stMainBlockContainer .stRadio label span,
     .stMainBlockContainer .stSelectbox label {{
-        font-size: {_font_size}px !important;
+        font-size: clamp(10px, 2vw, 16px) !important;
+        min-width: 0 !important;
+        line-height: 1.1 !important;
+        word-break: break-word !important;
     }}
     /* Tab etiketleri */
     .stMainBlockContainer button[data-baseweb="tab"] {{

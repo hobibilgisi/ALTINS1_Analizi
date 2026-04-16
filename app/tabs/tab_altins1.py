@@ -22,7 +22,7 @@ def render(ctx: "TabContext") -> None:
     ons_gold_tl_hist_series = ctx.series.ons_gold_tl
     ons_usd_hist_series = ctx.series.ons_usd
     usdtry_hist_series = ctx.series.usdtry
-    beklenen = ctx.prices.get("beklenen_altins1")
+    beklenen = ctx.live.beklenen_altins1
 
     with st.expander("⚙️ Grafik Ayarları", expanded=False):
         tab1_ccy = st.radio("Para birimi", ["TL", "USD"], horizontal=True, key="tab1_currency")

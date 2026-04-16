@@ -95,7 +95,7 @@ def generate_daily_summary(
             <tr style="border-bottom: 1px solid #333;">
                 <td style="padding: 8px; color: #aaa;">Makas</td>
                 <td style="padding: 8px; text-align: right; font-weight: bold; color: {color};">
-                    %{makas:.1f if makas else '—'}
+                    %{f'{makas:.1f}' if makas else '—'}
                 </td>
             </tr>
             <tr style="border-bottom: 1px solid #333;">

@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 def render(ctx: "TabContext") -> None:
     """Ons altın fiyat ve hacim grafiğini çizer."""
-    history = ctx.history
+    history = ctx.history_raw
 
     if history.get("ons_altin_usd") is not None:
         with st.expander("⚙️ Grafik Ayarları", expanded=False):

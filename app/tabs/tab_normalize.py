@@ -55,9 +55,15 @@ def render(ctx: "TabContext") -> None:
     _norm_visible = {k: v for k, v in _norm_series.items() if _t3_show.get(k, True)}
 
     if len(_norm_visible) >= 1:
-        # Ortak tarih aralığını bul — tüm seriler aynı noktadan başlasın
+
+        # Ortak tarih aralığını bul — eğer tüm serilerde bugünkü fiyat varsa, bugüne kadar uzat
+        today = max(s.index.max() for s in _norm_visible.values())
         common_start = max(s.index.min() for s in _norm_visible.values())
-        common_end = min(s.index.max() for s in _norm_visible.values())
+        # Eğer tüm serilerde today varsa, ortak bitişi today yap
+        if all(today in s.index for s in _norm_visible.values()):
+            common_end = today
+        else:
+            common_end = min(s.index.max() for s in _norm_visible.values())
 
         a1 = altins1_hist_series.loc[common_start:common_end] if "altins1" in _norm_visible else None
         gt = gram_gold_hist_series.loc[common_start:common_end] if "gram" in _norm_visible else None
@@ -83,9 +89,22 @@ def render(ctx: "TabContext") -> None:
         )
         apply_chart_font(fig_overlay, ctx.font_size, ctx.chart_height, ctx.grafik_kilidi)
         st.plotly_chart(fig_overlay, width="stretch", config=PLOTLY_CONFIG)
+        # Grafik altına merkezi live değerlerini göster — seri kesim tarihinden bağımsız
+        last_date = common_end
+        # ctx.live: tüm programın tek merkezi referansı — her yerde aynı değer
+        _cur_altins1 = ctx.live.altins1
+        _cur_beklenen = ctx.live.beklenen_altins1   # gram_gold_tl × 0.01 (beklenen ALTINS1)
+        _cur_gram_tl = ctx.live.gram_gold_tl
         st.caption(
             f"📅 Ortak aralık: {common_start.strftime('%d.%m.%Y')} — {common_end.strftime('%d.%m.%Y')} | "
             f"Tüm seriler ilk değere göre normalize edilmiştir (başlangıç = 0%)."
+        )
+        st.info(
+            f"**GÜNCEL DEĞERLER (Tüm Grafiklerde Aynı Kaynak — live):**\n"
+            f"ALTINS1: {f'₺{_cur_altins1:.2f}' if _cur_altins1 else '-'}  |  "
+            f"%1 Gr Altın (Beklenen): {f'₺{_cur_beklenen:.2f}' if _cur_beklenen else '-'}  |  "
+            f"Gram Altın TL: {f'₺{_cur_gram_tl:.2f}' if _cur_gram_tl else '-'}\n"
+            f"(Grafik aralığı: {last_date.strftime('%d.%m.%Y')}'ye kadar)"
         )
     else:
         st.warning("Normalize karşılaştırma için yeterli tarihsel veri bulunamadı.")

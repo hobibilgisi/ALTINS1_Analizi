@@ -130,6 +130,15 @@ def prepare_all_series(history: dict, altins1_hist, live: LivePrices) -> Prepare
     if result.ons_gold_tl is not None and live.ons_usd and live.usdtry:
         result.ons_gold_tl[today] = live.ons_usd * live.usdtry
         result.ons_gold_tl = result.ons_gold_tl.sort_index()
+    if result.ons_silver_usd is not None and live.ons_silver_usd:
+        result.ons_silver_usd[today] = live.ons_silver_usd
+        result.ons_silver_usd = result.ons_silver_usd.sort_index()
+    if result.gram_silver_tl is not None and live.ons_silver_usd and live.usdtry:
+        result.gram_silver_tl[today] = (live.ons_silver_usd * live.usdtry) / TROY_OUNCE_GRAM
+        result.gram_silver_tl = result.gram_silver_tl.sort_index()
+    if result.faiz is not None and live.faiz_us10y:
+        result.faiz[today] = live.faiz_us10y
+        result.faiz = result.faiz.sort_index()
 
     # -- Beklenen ALTINS1 + Tarihsel makas --
     if result.altins1 is not None and result.gram_gold_tl is not None:

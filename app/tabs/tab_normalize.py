@@ -56,19 +56,20 @@ def render(ctx: "TabContext") -> None:
 
     if len(_norm_visible) >= 1:
 
-        # Ortak tarih aralığını bul — eğer tüm serilerde bugünkü fiyat varsa, bugüne kadar uzat
-        today = max(s.index.max() for s in _norm_visible.values())
+        # Ortak başlangıç: tüm serilerin başladığı en geç tarih
+        # Bitiş: HER SERİ kendi son tarihine kadar uzar — bir serinin
+        # gecikmesi diğerlerini kesmez (faiz, bist100 gibi seriler
+        # altins1/gram'ın bugünkü değerini kesmemelidir)
         common_start = max(s.index.min() for s in _norm_visible.values())
-        # Eğer tüm serilerde today varsa, ortak bitişi today yap
-        if all(today in s.index for s in _norm_visible.values()):
-            common_end = today
-        else:
-            common_end = min(s.index.max() for s in _norm_visible.values())
 
-        a1 = altins1_hist_series.loc[common_start:common_end] if "altins1" in _norm_visible else None
-        gt = gram_gold_hist_series.loc[common_start:common_end] if "gram" in _norm_visible else None
-        ot = _norm_series["ons"].loc[common_start:common_end] if "ons" in _norm_visible else None
-        fz = faiz_hist_series.loc[common_start:common_end] if "faiz" in _norm_visible else None
+        a1 = altins1_hist_series.loc[common_start:] if "altins1" in _norm_visible else None
+        gt = gram_gold_hist_series.loc[common_start:] if "gram" in _norm_visible else None
+        ot = _norm_series["ons"].loc[common_start:] if "ons" in _norm_visible else None
+        fz = faiz_hist_series.loc[common_start:] if "faiz" in _norm_visible else None
+
+        # Grafik caption için son tarih: ana seriler (altins1/gram) arasından max
+        _main_ends = [s.index.max() for k, s in _norm_visible.items() if k in ("altins1", "gram", "ons") and s is not None]
+        common_end = max(_main_ends) if _main_ends else common_start
 
         if norm_ccy == "USD" and usdtry_hist_series is not None:
             usd_rate = usdtry_hist_series.loc[common_start:common_end]

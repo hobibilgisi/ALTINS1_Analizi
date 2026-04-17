@@ -15,10 +15,21 @@ from typing import Optional, TYPE_CHECKING
 import pandas as pd
 
 from app.config import TROY_OUNCE_GRAM, ALTINS1_GRAM_KATSAYI
-from app.calculator import calculate_spread_series
+from app.calculator import calculate_gram_gold_tl, calculate_spread_series
 
 if TYPE_CHECKING:
     from app.market_data import LivePrices
+
+
+def _has_value(value: Optional[float]) -> bool:
+    return value is not None and not pd.isna(value)
+
+
+def _append_today(series: pd.Series, value: float, today: pd.Timestamp) -> pd.Series:
+    """Seriyi kopyalayip bugunku degeri tek noktadan yazar."""
+    updated = series.copy()
+    updated.loc[today] = value
+    return updated.sort_index()
 
 
 @dataclass
@@ -110,35 +121,31 @@ def prepare_all_series(history: dict, altins1_hist, live: LivePrices) -> Prepare
             result.bist100 = bist["Close"]
 
     # -- Anlik veriyle bugunu esitle (AYNI KAYNAKTAN) --
-    # live.gram_gold_tl = live.ons_usd x live.usdtry / 31.1035
-    # Tarihsel serideki gram_gold_tl de ayni formulle hesaplandi
+    # live.ons_usd + live.usdtry ham verileridir.
+    # Tarihsel serideki gram_gold_tl ayni formulle hesaplanir.
     # Bu sayede seri icinde kaynak tutarsizligi OLMAZ
     today = pd.Timestamp(datetime.now().date())
 
-    if result.gram_gold_tl is not None and live.gram_gold_tl:
-        result.gram_gold_tl[today] = live.gram_gold_tl
-        result.gram_gold_tl = result.gram_gold_tl.sort_index()
-    if result.altins1 is not None and live.altins1:
-        result.altins1[today] = live.altins1
-        result.altins1 = result.altins1.sort_index()
-    if result.ons_usd is not None and live.ons_usd:
-        result.ons_usd[today] = live.ons_usd
-        result.ons_usd = result.ons_usd.sort_index()
-    if result.usdtry is not None and live.usdtry:
-        result.usdtry[today] = live.usdtry
-        result.usdtry = result.usdtry.sort_index()
-    if result.ons_gold_tl is not None and live.ons_usd and live.usdtry:
-        result.ons_gold_tl[today] = live.ons_usd * live.usdtry
-        result.ons_gold_tl = result.ons_gold_tl.sort_index()
-    if result.ons_silver_usd is not None and live.ons_silver_usd:
-        result.ons_silver_usd[today] = live.ons_silver_usd
-        result.ons_silver_usd = result.ons_silver_usd.sort_index()
-    if result.gram_silver_tl is not None and live.ons_silver_usd and live.usdtry:
-        result.gram_silver_tl[today] = (live.ons_silver_usd * live.usdtry) / TROY_OUNCE_GRAM
-        result.gram_silver_tl = result.gram_silver_tl.sort_index()
-    if result.faiz is not None and live.faiz_us10y:
-        result.faiz[today] = live.faiz_us10y
-        result.faiz = result.faiz.sort_index()
+    if result.gram_gold_tl is not None and _has_value(live.ons_usd) and _has_value(live.usdtry):
+        result.gram_gold_tl = _append_today(result.gram_gold_tl, calculate_gram_gold_tl(live.ons_usd, live.usdtry), today)
+    if result.altins1 is not None and _has_value(live.altins1):
+        result.altins1 = _append_today(result.altins1, live.altins1, today)
+    if result.ons_usd is not None and _has_value(live.ons_usd):
+        result.ons_usd = _append_today(result.ons_usd, live.ons_usd, today)
+    if result.usdtry is not None and _has_value(live.usdtry):
+        result.usdtry = _append_today(result.usdtry, live.usdtry, today)
+    if result.ons_gold_tl is not None and _has_value(live.ons_usd) and _has_value(live.usdtry):
+        result.ons_gold_tl = _append_today(result.ons_gold_tl, live.ons_usd * live.usdtry, today)
+    if result.ons_silver_usd is not None and _has_value(live.ons_silver_usd):
+        result.ons_silver_usd = _append_today(result.ons_silver_usd, live.ons_silver_usd, today)
+    if result.gram_silver_tl is not None and _has_value(live.ons_silver_usd) and _has_value(live.usdtry):
+        result.gram_silver_tl = _append_today(
+            result.gram_silver_tl,
+            (live.ons_silver_usd * live.usdtry) / TROY_OUNCE_GRAM,
+            today,
+        )
+    if result.faiz is not None and _has_value(live.faiz_us10y):
+        result.faiz = _append_today(result.faiz, live.faiz_us10y, today)
 
     # -- Beklenen ALTINS1 + Tarihsel makas --
     if result.altins1 is not None and result.gram_gold_tl is not None:

@@ -11,20 +11,19 @@ from app.config import SignalThresholds
 from app.data_preparer import PreparedSeries
 
 if TYPE_CHECKING:
-    from app.market_data import LivePrices
+    from app.market_data import CurrentPrices
 
 
 @dataclass
 class TabContext:
     """Tum grafik tab'lari tarafindan paylasilan uygulama baglami.
 
-    ONEMLI: Anlik fiyatlar 'live' nesnesinden, tarihsel seriler 'series'
-    nesnesinden alinir. Her ikisi de ayni kaynaktan turetilmistir,
-    tutarsizlik YOKTUR.
+    ONEMLI: Programin guncel gostergeleri 'current' nesnesinden,
+    tarihsel veriler 'series' nesnesinden alinir.
     """
 
     series: PreparedSeries
-    live: LivePrices            # Merkezi anlik fiyatlar
+    current: "CurrentPrices"   # Program genelinde kullanilan tek cozulmus guncel gorunum
     history_raw: Dict           # Ham yfinance DataFrames (candlestick icin)
     spread_hist: Optional[pd.Series]
     thresholds: SignalThresholds

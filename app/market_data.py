@@ -28,9 +28,25 @@ from zoneinfo import ZoneInfo
 import pandas as pd
 
 from app.config import TROY_OUNCE_GRAM, ALTINS1_GRAM_KATSAYI
+from app.calculator import calculate_expected_altins1, calculate_gram_gold_tl, calculate_spread
 
 logger = logging.getLogger(__name__)
 _TZ_ISTANBUL = ZoneInfo("Europe/Istanbul")
+
+
+def _has_value(value: Optional[float]) -> bool:
+    """None ve NaN disindaki sayisal degerleri gecerli kabul eder."""
+    return value is not None and not pd.isna(value)
+
+
+def _last_series_value(series: Optional[pd.Series]) -> Optional[float]:
+    """Serinin son gecerli degerini doner."""
+    if series is None:
+        return None
+    clean = series.dropna()
+    if clean.empty:
+        return None
+    return float(clean.iloc[-1])
 
 
 @dataclass
@@ -52,11 +68,6 @@ class LivePrices:
     ons_silver_usd: Optional[float] = None    # Ons gumus USD (yfinance)
     faiz_us10y: Optional[float] = None        # ABD 10Y faiz (yfinance)
 
-    # -- Turetilmis: Temellerden HESAPLANAN --
-    gram_gold_tl: Optional[float] = None      # = ons_usd x usdtry / 31.1035
-    beklenen_altins1: Optional[float] = None   # = gram_gold_tl x 0.01
-    makas_pct: Optional[float] = None          # = (altins1 - beklenen) / beklenen x 100
-
     # -- Piyasa Referans: Truncgil (yalnizca bilgi amacli) --
     piyasa_gram_altin: Optional[float] = None
     piyasa_has_altin: Optional[float] = None
@@ -72,22 +83,102 @@ class LivePrices:
     cache_time: str = ""
     kaynak_truncgil: bool = False
 
-    def recalculate(self):
-        """Turetilmis degerleri temel fiyatlardan yeniden hesaplar.
+@dataclass
+class CurrentPrices:
+    """Program genelinde kullanilacak tek cozulmus fiyat snapshot'i."""
 
-        Bu fonksiyon her zaman AYNI formulleri kullanir:
-          gram_gold_tl   = ons_usd x usdtry / TROY_OUNCE_GRAM
-          beklenen_altins1 = gram_gold_tl x ALTINS1_GRAM_KATSAYI
-          makas_pct      = (altins1 - beklenen) / beklenen x 100
-        """
-        if self.ons_usd and self.usdtry:
-            self.gram_gold_tl = (self.ons_usd * self.usdtry) / TROY_OUNCE_GRAM
-        if self.gram_gold_tl:
-            self.beklenen_altins1 = self.gram_gold_tl * ALTINS1_GRAM_KATSAYI
-        if self.altins1 and self.beklenen_altins1 and self.beklenen_altins1 != 0:
-            self.makas_pct = (
-                (self.altins1 - self.beklenen_altins1) / self.beklenen_altins1
-            ) * 100
+    altins1: Optional[float] = None
+    ons_usd: Optional[float] = None
+    usdtry: Optional[float] = None
+    ons_silver_usd: Optional[float] = None
+    faiz_us10y: Optional[float] = None
+    gram_gold_tl: Optional[float] = None
+    beklenen_altins1: Optional[float] = None
+    makas_pct: Optional[float] = None
+    piyasa_gram_altin: Optional[float] = None
+    piyasa_has_altin: Optional[float] = None
+    piyasa_dolar_tl: Optional[float] = None
+    ceyrek_altin: Optional[float] = None
+    yarim_altin: Optional[float] = None
+    tam_altin: Optional[float] = None
+    hacim_lot: Optional[float] = None
+    hacim_tl: Optional[float] = None
+    update_date: str = ""
+    cache_time: str = ""
+    kaynak_truncgil: bool = False
+
+    @property
+    def has_core_prices(self) -> bool:
+        return (
+            _has_value(self.altins1)
+            and _has_value(self.gram_gold_tl)
+            and _has_value(self.beklenen_altins1)
+            and _has_value(self.makas_pct)
+        )
+
+
+def resolve_current_prices(live: LivePrices, series: Any) -> CurrentPrices:
+    """Live + series verilerinden tek ve tutarli gorunum uretir.
+
+    Kural:
+      - Program genelinde gosterilecek guncel fiyat once series'in son degerinden gelir.
+      - Series yoksa live kullanilir.
+      - Turev alanlar en son secilen temel degerlerden yeniden hesaplanir.
+    """
+    current = CurrentPrices(
+        altins1=live.altins1,
+        ons_usd=live.ons_usd,
+        usdtry=live.usdtry,
+        ons_silver_usd=live.ons_silver_usd,
+        faiz_us10y=live.faiz_us10y,
+        piyasa_gram_altin=live.piyasa_gram_altin,
+        piyasa_has_altin=live.piyasa_has_altin,
+        piyasa_dolar_tl=live.piyasa_dolar_tl,
+        ceyrek_altin=live.ceyrek_altin,
+        yarim_altin=live.yarim_altin,
+        tam_altin=live.tam_altin,
+        hacim_lot=live.hacim_lot,
+        hacim_tl=live.hacim_tl,
+        update_date=live.update_date,
+        cache_time=live.cache_time,
+        kaynak_truncgil=live.kaynak_truncgil,
+    )
+
+    if series is not None:
+        series_altins1 = _last_series_value(getattr(series, "altins1", None))
+        series_ons_usd = _last_series_value(getattr(series, "ons_usd", None))
+        series_usdtry = _last_series_value(getattr(series, "usdtry", None))
+        series_ons_silver = _last_series_value(getattr(series, "ons_silver_usd", None))
+        series_faiz = _last_series_value(getattr(series, "faiz", None))
+        series_gram = _last_series_value(getattr(series, "gram_gold_tl", None))
+        series_beklenen = _last_series_value(getattr(series, "beklenen", None))
+        series_spread = _last_series_value(getattr(series, "spread", None))
+
+        if series_altins1 is not None:
+            current.altins1 = series_altins1
+        if series_ons_usd is not None:
+            current.ons_usd = series_ons_usd
+        if series_usdtry is not None:
+            current.usdtry = series_usdtry
+        if series_ons_silver is not None:
+            current.ons_silver_usd = series_ons_silver
+        if series_faiz is not None:
+            current.faiz_us10y = series_faiz
+        if series_gram is not None:
+            current.gram_gold_tl = series_gram
+        if series_beklenen is not None:
+            current.beklenen_altins1 = series_beklenen
+        if series_spread is not None:
+            current.makas_pct = series_spread
+
+    if current.gram_gold_tl is None and _has_value(current.ons_usd) and _has_value(current.usdtry):
+        current.gram_gold_tl = calculate_gram_gold_tl(current.ons_usd, current.usdtry)
+    if _has_value(current.gram_gold_tl):
+        current.beklenen_altins1 = calculate_expected_altins1(current.gram_gold_tl)
+    if _has_value(current.altins1) and _has_value(current.gram_gold_tl):
+        current.makas_pct = calculate_spread(current.altins1, current.gram_gold_tl)
+
+    return current
 
 
 @dataclass
@@ -95,13 +186,14 @@ class MarketData:
     """Programin TEK veri kaynagi. Tum moduller buradan okur.
 
     Attributes:
-        live: Anlik fiyatlar (tek seferde cekilmis ve tutarli)
+        live: Ham anlik fiyatlar ve kaynak meta bilgisi
         series: Grafik-hazir tarihsel seriler (PreparedSeries)
         altins1_hist_raw: Mynet'ten gelen ham ALTINS1 tarihsel DataFrame
         history_raw: yfinance'den gelen ham tarihsel DataFrames
     """
 
     live: LivePrices = field(default_factory=LivePrices)
+    current: CurrentPrices = field(default_factory=CurrentPrices)
     series: Any = None  # PreparedSeries -- set after import
     altins1_hist_raw: Optional[pd.DataFrame] = None
     history_raw: Dict[str, Optional[pd.DataFrame]] = field(default_factory=dict)
@@ -181,10 +273,7 @@ def fetch_market_data(period: str = "1y") -> MarketData:
     live.ons_silver_usd = _yf_live.get("ons_gumus_usd")
     live.faiz_us10y = _yf_live.get("faiz_us10y")
 
-    # == 5) Turetilmis degerleri hesapla (TEK FORMUL) ==
-    live.recalculate()
-
-    # == 6) Disk cache'den eksik kritik alanlari tamamla ==
+    # == 5) Disk cache'den eksik kritik alanlari tamamla ==
     _critical = {
         "altins1": live.altins1,
         "ons_usd": live.ons_usd,
@@ -194,40 +283,40 @@ def fetch_market_data(period: str = "1y") -> MarketData:
     if _missing:
         cached = load_prices_from_cache()
         if cached:
-            if not live.altins1 and cached.get("altins1_fiyat"):
+            if live.altins1 is None and cached.get("altins1_fiyat") is not None:
                 live.altins1 = cached["altins1_fiyat"]
                 logger.info(f"cache'den tamamlandi: altins1={live.altins1}")
-            if not live.ons_usd and cached.get("ons_altin_usd"):
+            if live.ons_usd is None and cached.get("ons_altin_usd") is not None:
                 live.ons_usd = cached["ons_altin_usd"]
                 logger.info(f"cache'den tamamlandi: ons_usd={live.ons_usd}")
-            if not live.usdtry and cached.get("dolar_tl"):
+            if live.usdtry is None and cached.get("dolar_tl") is not None:
                 live.usdtry = cached["dolar_tl"]
                 logger.info(f"cache'den tamamlandi: usdtry={live.usdtry}")
-            # Cache'den tamamlanan degerlerle yeniden hesapla
-            live.recalculate()
 
-    # == 7) Tarihsel veriler (yfinance) ==
+    # == 6) Tarihsel veriler (yfinance) ==
     data.history_raw = fetch_all_history(period=period)
 
-    # == 8) Serileri hazirla (TEK kaynak: yfinance + Mynet) ==
+    # == 7) Serileri hazirla (TEK kaynak: yfinance + Mynet) ==
     data.series = prepare_all_series(
         history=data.history_raw,
         altins1_hist=data.altins1_hist_raw,
         live=live,
     )
+    data.current = resolve_current_prices(live=live, series=data.series)
 
-    # == 9) Basarili veri varsa cache'e yaz ==
-    if live.altins1 and live.gram_gold_tl:
+    # == 8) Basarili veri varsa cache'e yaz ==
+    if data.current.has_core_prices:
         _cache_dict = {
-            "altins1_fiyat": live.altins1,
-            "gram_altin_tl": live.gram_gold_tl,
-            "ons_altin_usd": live.ons_usd,
-            "dolar_tl": live.usdtry,
-            "beklenen_altins1": live.beklenen_altins1,
-            "makas_pct": live.makas_pct,
+            "altins1_fiyat": data.current.altins1,
+            "gram_altin_tl": data.current.gram_gold_tl,
+            "ons_altin_usd": data.current.ons_usd,
+            "dolar_tl": data.current.usdtry,
+            "beklenen_altins1": data.current.beklenen_altins1,
+            "makas_pct": data.current.makas_pct,
             "hacim_lot": live.hacim_lot,
         }
         save_prices_to_cache(_cache_dict)
         live.cache_time = datetime.now(_TZ_ISTANBUL).isoformat()
+        data.current.cache_time = live.cache_time
 
     return data

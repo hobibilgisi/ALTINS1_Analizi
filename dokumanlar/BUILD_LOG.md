@@ -43,3 +43,4 @@ Format: `BUILD | TARİH | VERSİYON | AÇIKLAMA | GIT HASH`
 | 0034 | 2026-04-17 | 4.4.0 | 2 dosya değişikliği | d8224c0 |
 | 0035 | 2026-04-17 | 4.4.0 | 7 dosya değişikliği | 42608e3 |
 | 0036 | 2026-04-17 | 4.4.0 | 2 dosya değişikliği | 84b0c12 |
+| 0037 | 2026-04-18 | 4.4.0 | 10 dosya değişikliği | 74b671e |

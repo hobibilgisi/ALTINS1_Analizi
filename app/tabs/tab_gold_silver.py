@@ -6,6 +6,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from app.charts import create_gold_silver_chart
+from app.series_utils import common_index, divide_by_rate, has_data, multiply_by_rate
 from app.ui_helpers import add_ema_traces, apply_chart_font, ema_checkboxes, PLOTLY_CONFIG
 
 if TYPE_CHECKING:
@@ -48,26 +49,28 @@ def render(ctx: "TabContext") -> None:
         _gold_s = gram_gold_hist_series
         _silver_s = gram_silver_hist_series
 
-    if _gold_s is not None and _silver_s is not None:
-        gs_common = _gold_s.index.intersection(_silver_s.index)
+    if has_data(_gold_s) and has_data(_silver_s):
+        gs_common = common_index(_gold_s, _silver_s)
         if len(gs_common) > 0:
             _g = _gold_s.loc[gs_common].copy()
             _s = _silver_s.loc[gs_common].copy()
 
             # USD dönüşümü (gram TL → USD)
-            if t5_ccy == "USD" and t5_unit == "Gram" and usdtry_hist_series is not None:
-                usd_rate = usdtry_hist_series.loc[usdtry_hist_series.index.intersection(gs_common)]
-                ci = _g.index.intersection(usd_rate.index)
-                _g = _g.loc[ci] / usd_rate.loc[ci]
-                _s = _s.loc[ci] / usd_rate.loc[ci]
-                gs_common = ci
+            if t5_ccy == "USD" and t5_unit == "Gram" and has_data(usdtry_hist_series):
+                usd_rate = usdtry_hist_series.loc[gs_common]
+                _g = divide_by_rate(_g, usd_rate)
+                _s = divide_by_rate(_s, usd_rate)
+                gs_common = common_index(_g, _s)
+                _g = _g.loc[gs_common]
+                _s = _s.loc[gs_common]
             # TL dönüşümü (ons USD → TL)
-            elif t5_ccy == "TL" and t5_unit == "Ons" and usdtry_hist_series is not None:
-                usd_rate = usdtry_hist_series.loc[usdtry_hist_series.index.intersection(gs_common)]
-                ci = _g.index.intersection(usd_rate.index)
-                _g = _g.loc[ci] * usd_rate.loc[ci]
-                _s = _s.loc[ci] * usd_rate.loc[ci]
-                gs_common = ci
+            elif t5_ccy == "TL" and t5_unit == "Ons" and has_data(usdtry_hist_series):
+                usd_rate = usdtry_hist_series.loc[gs_common]
+                _g = multiply_by_rate(_g, usd_rate)
+                _s = multiply_by_rate(_s, usd_rate)
+                gs_common = common_index(_g, _s)
+                _g = _g.loc[gs_common]
+                _s = _s.loc[gs_common]
 
             fig_gs = create_gold_silver_chart(
                 _g, _s, unit=t5_unit.lower(), currency=t5_ccy,

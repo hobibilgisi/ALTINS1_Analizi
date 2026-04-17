@@ -15,9 +15,9 @@ import os
 import sys
 import time
 from datetime import datetime
+from typing import List
 from zoneinfo import ZoneInfo
 
-import pandas as pd
 import streamlit as st
 from streamlit_autorefresh import st_autorefresh
 
@@ -29,7 +29,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from app.config import (
     AppConfig, SignalThresholds,
     ALTINS1_GRAM_KATSAYI,
-    APP_VERSION, APP_VERSION_FULL, APP_BUILD,
+    APP_VERSION_FULL,
     APP_VERSION_DATE, APP_VERSION_NOTES,
     EmailConfig,
 )
@@ -47,7 +47,7 @@ from app.tabs import (
 
 # ── Logging ────────────────────────────────────────────────────
 os.makedirs("logs", exist_ok=True)
-_log_handlers = [logging.StreamHandler()]
+_log_handlers: List[logging.Handler] = [logging.StreamHandler()]
 try:
     _log_handlers.append(logging.FileHandler("logs/app.log", encoding="utf-8"))
 except OSError:
@@ -313,7 +313,7 @@ st.markdown(f"""
 
 # ── Veri Çekme (cache'li) — TEK GİRİŞ NOKTASI ───────────────
 @st.cache_data(ttl=config.cache_ttl_sec)
-def load_market(period_val):
+def load_market(period_val: str):
     """Tüm verileri TEK seferde çeker. Programın dış dünyayla tek temas noktası."""
     return fetch_market_data(period=period_val)
 
@@ -333,8 +333,9 @@ bist_acik = is_bist_open()
 # Tüm verileri TEK seferde yükle (canlı çek, başarısızsa cache'den tamamla)
 market = load_market(period)
 _live = market.live
+_current = market.current
 _series = market.series
-_has_live = bool(_live.altins1) and bool(_live.gram_gold_tl)
+_has_live = _current.has_core_prices
 
 if not bist_acik:
     cache_time = _live.cache_time
@@ -388,22 +389,13 @@ thresholds = SignalThresholds(
 # ── Tek Merkezi Referans Değerler ─────────────────────────────
 # _live nesnesi TÜM veri için tek kaynak. Tüm metrikler, info boxlar,
 # e-posta vs. buradaki değişkenleri kullanır — seri kesimlerine BAĞIMLI DEĞİL.
-altins1_fiyat = _live.altins1
-gram_altin_tl = _live.gram_gold_tl
-beklenen = _live.beklenen_altins1
-makas_pct = _live.makas_pct
-# Fallback: live değer None ise (veri gecikmesi / başarısız çekim) seri son değeri
-if altins1_fiyat is None and _series.altins1 is not None and len(_series.altins1) > 0:
-    altins1_fiyat = float(_series.altins1.iloc[-1])
-if gram_altin_tl is None and _series.gram_gold_tl is not None and len(_series.gram_gold_tl) > 0:
-    gram_altin_tl = float(_series.gram_gold_tl.iloc[-1])
-if beklenen is None and gram_altin_tl is not None:
-    beklenen = gram_altin_tl * ALTINS1_GRAM_KATSAYI
-if makas_pct is None and altins1_fiyat is not None and beklenen and beklenen != 0:
-    makas_pct = (altins1_fiyat - beklenen) / beklenen * 100
+altins1_fiyat = _current.altins1
+gram_altin_tl = _current.gram_gold_tl
+beklenen = _current.beklenen_altins1
+makas_pct = _current.makas_pct
 
 # Sinyal hesapla (sidebar ve e-posta için kullanılacak)
-if makas_pct:
+if makas_pct is not None:
     signal = evaluate_signal(makas_pct, thresholds)
     signal_msg = generate_signal_message(signal, makas_pct)
 else:
@@ -420,7 +412,7 @@ color_map = {
 
 # Sidebar'daki ayrılmış alanı doldur — Makas + Sinyal + Piyasa Verileri
 with _piyasa_container:
-    if altins1_fiyat and gram_altin_tl and beklenen:
+    if _current.has_core_prices:
         # Sinyal kutusu (en üstte)
         st.markdown(
             f'<div style="padding:10px; border-radius:8px; '
@@ -441,19 +433,19 @@ with _piyasa_container:
         _market_items = [
             ("Gram Altın TL", f"₺{gram_altin_tl:,.2f}"),
         ]
-        if _live.ons_usd:
-            _market_items.append(("Ons Altın (USD)", f"${_live.ons_usd:,.2f}"))
-        if _live.usdtry:
-            _market_items.append(("Dolar/TL", f"₺{_live.usdtry:,.4f}"))
-        if _live.ceyrek_altin:
-            _market_items.append(("Çeyrek Altın", f"₺{_live.ceyrek_altin:,.2f}"))
+        if _current.ons_usd is not None:
+            _market_items.append(("Ons Altın (USD)", f"${_current.ons_usd:,.2f}"))
+        if _current.usdtry is not None:
+            _market_items.append(("Dolar/TL", f"₺{_current.usdtry:,.4f}"))
+        if _current.ceyrek_altin is not None:
+            _market_items.append(("Çeyrek Altın", f"₺{_current.ceyrek_altin:,.2f}"))
 
         # Hacim (Lot) — anlık + aylık ortalama
-        if _live.hacim_lot:
-            _market_items.append(("Hacim (Lot)", f"{_live.hacim_lot:,.0f}"))
+        if _current.hacim_lot is not None:
+            _market_items.append(("Hacim (Lot)", f"{_current.hacim_lot:,.0f}"))
             from app.data_fetcher import load_volume_avg
             _avg_vol = load_volume_avg(30)
-            if _avg_vol:
+            if _avg_vol is not None:
                 _market_items.append(("30G Ort. Hacim", f"{_avg_vol:,.0f}"))
 
         for i in range(0, len(_market_items), 2):
@@ -462,8 +454,8 @@ with _piyasa_container:
             if i + 1 < len(_market_items):
                 cols[1].metric(_market_items[i + 1][0], _market_items[i + 1][1])
 
-        if _live.update_date:
-            st.caption(f"📡 {_live.update_date}")
+        if _current.update_date:
+            st.caption(f"📡 {_current.update_date}")
 
         with st.expander("📐 Makas Hesaplama Detayı"):
             st.markdown(f"""
@@ -479,7 +471,7 @@ with _piyasa_container:
     else:
         st.warning("⚠️ Fiyat verisi alınamadı.")
 
-if not altins1_fiyat or not gram_altin_tl:
+if altins1_fiyat is None or gram_altin_tl is None:
     st.error(
         "⚠️ ALTINS1 veya gram altın fiyatı alınamadı ve önceki kayıtlı veri de bulunamadı. "
         "İnternet bağlantınızı kontrol edin. İlk çalıştırmada seans saatlerinde veri çekilmesi gerekir."
@@ -496,7 +488,7 @@ st.header("📈 Grafikler")
 # ── Tab Bağlamı ────────────────────────────────────────────────
 _tab_ctx = TabContext(
     series=_series,
-    live=_live,
+    current=_current,
     history_raw=market.history_raw,
     spread_hist=spread_hist,
     thresholds=thresholds,
@@ -579,8 +571,8 @@ with st.expander("E-posta Ayarları ve Gönderim", expanded=False):
         "gram_altin_tl": gram_altin_tl,
         "beklenen_altins1": beklenen,
         "makas_pct": makas_pct,
-        "ons_altin_usd": _live.ons_usd,
-        "dolar_tl": _live.usdtry,
+        "ons_altin_usd": _current.ons_usd,
+        "dolar_tl": _current.usdtry,
     }
     _email_thresholds = {
         "strong_buy": thresholds.strong_buy,
@@ -591,7 +583,7 @@ with st.expander("E-posta Ayarları ve Gönderim", expanded=False):
     }
 
     # Sinyal hesabı: makas_pct zaten _series.spread'den alındı (merkezi, tutarlı)
-    _email_makas = makas_pct if makas_pct else 0
+    _email_makas = makas_pct if makas_pct is not None else 0
     _active_signal = evaluate_signal(_email_makas, thresholds)
     _active_signal_msg = generate_signal_message(_active_signal, _email_makas)
 

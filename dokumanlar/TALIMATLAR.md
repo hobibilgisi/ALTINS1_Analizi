@@ -125,12 +125,11 @@ altins1_analiz/
 │       ├── __init__.py        # TabContext dataclass
 │       ├── tab_altins1.py     # Tab 1: ALTINS1 Gerçek vs Beklenen
 │       ├── tab_spread.py      # Tab 2: Makas analizi
-│       ├── tab_normalize.py   # Tab 3: Normalize karşılaştırma
-│       ├── tab_ons.py         # Tab 4: Ons Altın XAU/USD
-│       ├── tab_gold_silver.py # Tab 5: Altın vs Gümüş
-│       ├── tab_news.py        # Tab 6: Haberler
-│       ├── tab_reserves.py    # Tab 7: MB Rezervleri + Sinyaller
-│       └── tab_guide.py       # Tab 8: Bilgi Rehberi
+│       ├── tab_ons.py         # Tab 3: Ons Altın XAU/USD
+│       ├── tab_gold_silver.py # Tab 4: Altın vs Gümüş
+│       ├── tab_news.py        # Tab 5: Haberler
+│       ├── tab_reserves.py    # Tab 6: MB Rezervleri + Sinyaller
+│       └── tab_guide.py       # Tab 7: Bilgi Rehberi
 ├── data/
 │   └── cache/                 # Önbellek verileri (last_prices.json)
 ├── dokumanlar/                # Proje dokümantasyonu
@@ -196,11 +195,10 @@ python-dateutil>=2.8.0   # Tarih işlemleri
 - 5 seviyeli sinyal motoru (STRONG_BUY → STRONG_SELL)
 
 ### Aşama 4: Grafik Arayüzü ✅
-- Streamlit dashboard yapısı (8 sekme, her tab ayrı modül: `app/tabs/`)
+- Streamlit dashboard yapısı (7 sekme, her tab ayrı modül: `app/tabs/`)
 - `TabContext` dataclass ile tab modüllerine ortak veri aktarımı
 - ALTINS1 vs Beklenen grafiği (TL/USD toggle)
 - Makas tarihsel grafiği (kümülatif ortalama + eşik çizgileri)
-- Normalize karşılaştırma (ALTINS1, Gram, Ons, GLDTR)
 - Ons Altın XAU/USD mum grafiği + hacim
 - Ons Altın vs Ons Gümüş dual Y-axis
 - Gram Altın vs Gram Gümüş (TL/USD toggle)

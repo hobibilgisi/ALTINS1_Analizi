@@ -63,7 +63,6 @@ app.tabs.tab_*       → (8 tab modülü, her birinden render() çağrılır)
 |-------|------------------|
 | `tab_altins1.py` | `charts`, `ui_helpers`, `config` |
 | `tab_spread.py` | `charts`, `ui_helpers`, `calculator` |
-| `tab_normalize.py` | `charts`, `ui_helpers` |
 | `tab_ons.py` | `charts`, `ui_helpers` |
 | `tab_gold_silver.py` | `charts`, `ui_helpers`, `config` |
 | `tab_news.py` | — (sadece streamlit) |
@@ -108,7 +107,6 @@ altins1_app.py (orkestratör)
     └── tabs/ ─────────────────────────────────────────┐│
         ├── tab_altins1 ──→ charts, ui_helpers, config ││
         ├── tab_spread ───→ charts, ui_helpers, calc   ││
-        ├── tab_normalize → charts, ui_helpers         ││
         ├── tab_ons ──────→ charts, ui_helpers         ││
         ├── tab_gold_silver → charts, ui_helpers, conf ││
         ├── tab_news ─────→ (bağımsız)                 ││
@@ -214,7 +212,6 @@ turkce_tarih_ekseni(fig) → Figure  # Tüm tarihleri Türkçe'ye çevir
 create_price_chart(df, title, show_volume)      # Mum grafik + hacim
 create_spread_chart(spread, thresholds)          # Makas % + eşik çizgileri
 create_altins1_vs_expected_chart(a1, gram, ...)  # ALTINS1 vs Beklenen
-create_overlay_chart(a1, gram, ons, ...)         # Normalize karşılaştırma
 create_gold_silver_chart(gold, silver, unit, ccy) # Altın vs Gümüş dual-Y
 ```
 
@@ -335,15 +332,14 @@ Her Tab Modülü (render fonksiyonu):
 │ Piyasa verileri: Gram, Ons, Dolar, Çeyrek, Hacim     │
 └───────────────────────────────────────────────────────┘
         ↓
-┌─ 8 TAB ARAYÜZÜ ──────────────────────────────────────┐
+┌─ 7 TAB ARAYÜZÜ ──────────────────────────────────────┐
 │ Tab 1: 🎯 ALTINS1 Analizi (vs beklenen, EMA)         │
 │ Tab 2: 📊 Makas Analizi (spread %, eşikler)          │
-│ Tab 3: 📈 Normalize Karşılaştırma                    │
-│ Tab 4: 🕯️ Ons Altın XAU/USD (mum grafik)            │
-│ Tab 5: 🥇🥈 Altın vs Gümüş (dual Y-axis)            │
-│ Tab 6: 📰 Haberler (RSS günlük/haftalık)             │
-│ Tab 7: 🏦 Merkez Bankaları (rezervler + sinyaller)   │
-│ Tab 8: 📖 Bilgi Rehberi                              │
+│ Tab 3: 🕯️ Ons Altın XAU/USD (mum grafik)            │
+│ Tab 4: 🥇🥈 Altın vs Gümüş (dual Y-axis)            │
+│ Tab 5: 📰 Haberler (RSS günlük/haftalık)             │
+│ Tab 6: 🏦 Merkez Bankaları (rezervler + sinyaller)   │
+│ Tab 7: 📖 Bilgi Rehberi                              │
 └───────────────────────────────────────────────────────┘
         ↓
 ┌─ E-POSTA + FOOTER ────────────────────────────────────┐

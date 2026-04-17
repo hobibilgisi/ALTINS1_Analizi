@@ -43,7 +43,7 @@ from app.news_fetcher import get_daily_and_weekly_news
 from app.email_notifier import send_daily_signal_email
 from app.tabs import TabContext
 from app.tabs import (
-    tab_altins1, tab_spread, tab_normalize,
+    tab_altins1, tab_spread,
     tab_ons, tab_gold_silver, tab_news,
     tab_reserves, tab_guide,
 )
@@ -500,10 +500,9 @@ _tab_ctx = TabContext(
     grafik_kilidi=_grafik_kilidi,
 )
 
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
     "🎯 ALTINS1 Analizi",
     "📊 S1/Gr Oranı Analizi",
-    "📈 Normalize Karşılaştırma",
     "🕯️ Ons Altın (XAU/USD)",
     "🥇🥈 Altın vs Gümüş",
     "📰 Haberler",
@@ -518,22 +517,19 @@ with tab2:
     tab_spread.render(_tab_ctx)
 
 with tab3:
-    tab_normalize.render(_tab_ctx)
-
-with tab4:
     tab_ons.render(_tab_ctx)
 
-with tab5:
+with tab4:
     tab_gold_silver.render(_tab_ctx)
 
-with tab6:
+with tab5:
     daily_news, weekly_news = load_news_split()
     tab_news.render(daily_news, weekly_news)
 
-with tab7:
+with tab6:
     tab_reserves.render(_grafik_kilidi)
 
-with tab8:
+with tab7:
     tab_guide.render()
 
 

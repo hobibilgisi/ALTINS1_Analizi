@@ -1,8 +1,9 @@
 """Tab 5 — Altın vs Gümüş karşılaştırma grafiği."""
+# pyright: reportUnknownMemberType=false, reportUnknownVariableType=false, reportUnknownArgumentType=false
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, cast
 
-import plotly.graph_objects as go
+import plotly.graph_objects as go  # pyright: ignore[reportMissingTypeStubs]
 import streamlit as st
 
 from app.charts import create_gold_silver_chart
@@ -75,7 +76,7 @@ def render(ctx: "TabContext") -> None:
             fig_gs = create_gold_silver_chart(
                 _g, _s, unit=t5_unit.lower(), currency=t5_ccy,
             )
-            for _tr in fig_gs.data:
+            for _tr in cast(list[Any], cast(Any, fig_gs).data):
                 if "Altın" in _tr.name and not _show_t5_gold:
                     _tr.visible = False
                 if "Gümüş" in _tr.name and not _show_t5_silver:

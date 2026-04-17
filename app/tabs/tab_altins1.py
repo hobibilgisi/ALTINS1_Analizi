@@ -1,9 +1,10 @@
 """Tab 1 — ALTINS1 Analizi: Gerçek vs Beklenen karşılaştırma grafiği."""
+# pyright: reportUnknownMemberType=false, reportUnknownVariableType=false, reportUnknownArgumentType=false
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, cast
 
 import pandas as pd
-import plotly.graph_objects as go
+import plotly.graph_objects as go  # pyright: ignore[reportMissingTypeStubs]
 import streamlit as st
 
 from app.charts import create_altins1_vs_expected_chart
@@ -63,7 +64,7 @@ def render(ctx: "TabContext") -> None:
                 beklenen_series=bek,
                 currency=tab1_ccy,
             )
-            for _tr in fig_vs.data:
+            for _tr in cast(list[Any], cast(Any, fig_vs).data):
                 if "Gerçek" in _tr.name and not _show_t1_gercek:
                     _tr.visible = False
                 if ("%1 Gr" in _tr.name or "Beklenen" in _tr.name) and not _show_t1_beklenen:

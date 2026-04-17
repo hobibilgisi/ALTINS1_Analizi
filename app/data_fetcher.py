@@ -253,103 +253,38 @@ def parse_truncgil_prices(raw: Dict[str, Any]) -> Dict[str, float]:
 
 
 def fetch_current_prices() -> Dict[str, Any]:
-    """Tüm güncel fiyatları toparlayarak döndürür.
+    """Legacy uyumluluk sarmalayıcısı.
 
-    Kaynaklar:
-      - mynet Finans  → ALTINS1 BIST gerçek fiyatı
-      - truncgil API  → gram altın TL, dolar/TL, altın çeşitleri
-      - yfinance      → ons altın USD (GC=F), dolar/TL teyidi (USDTRY=X)
-
-    Returns dict with keys:
-        altins1_fiyat, gram_altin_tl, ons_altin_usd, dolar_tl,
-        beklenen_altins1, makas_pct, gram_altin_hesaplanan, ...
+    Yeni mimaride güncel fiyatlar `fetch_market_data()` ile üretilen
+    `MarketData.current` üstünden çözülür. Bu fonksiyon sadece eski çağrılar
+    için düz sözlük görünümü döndürür.
     """
-    result: Dict[str, Any] = {}
+    from app.market_data import fetch_market_data
 
-    # ── 1) ALTINS1 BIST fiyatı + hacim (Mynet) ───────────────
-    altins1_price, _ = fetch_altins1_mynet()
-    result["altins1_fiyat"] = altins1_price
-    volume_data = fetch_altins1_volume()
-    result.update(volume_data)  # hacim_lot, hacim_tl
+    logger.info("fetch_current_prices() legacy sarmalayıcı olarak MarketData.current kullanıyor")
 
-    # ── 2) Truncgil API ─────────────────────────────────────
-    raw = fetch_truncgil()
-    if raw:
-        tp = parse_truncgil_prices(raw)
-        result["gram_altin_tl"] = tp.get("gram_altin_satis")
-        result["has_altin_tl"] = tp.get("has_altin_satis")
-        result["dolar_tl"] = tp.get("dolar_tl_alis")
-        result["ceyrek_altin"] = tp.get("ceyrek_altin_satis")
-        result["yarim_altin"] = tp.get("yarim_altin_satis")
-        result["tam_altin"] = tp.get("tam_altin_satis")
-        result["update_date"] = tp.get("update_date", "")
-        result["kaynak_truncgil"] = True
-    else:
-        result["kaynak_truncgil"] = False
+    market = fetch_market_data(period="1mo")
+    current = market.current
 
-    # ── 3) yfinance: ons altın + dolar/TL ───────────────────
-    # Sadece anlık fiyatlaması gereken sembolleri çek (tarihsel-only olanları atla)
-    _yf_realtime = {"ons_altin_usd", "ons_gumus_usd", "dolar_tl", "faiz_us10y"}
-    for key, symbol in YF_SYMBOLS.items():
-        if key not in _yf_realtime:
-            continue
-        try:
-            ticker = yf.Ticker(symbol)
-            hist = ticker.history(period="5d")
-            if not hist.empty:
-                result[key] = float(hist["Close"].iloc[-1])
-                logger.info(f"yfinance: {symbol} = {result[key]}")
-            else:
-                logger.warning(f"yfinance: {symbol} veri yok")
-        except Exception as e:
-            logger.error(f"yfinance hatası ({symbol}): {e}")
-
-    # ── 4) Fallback: Truncgil başarısızsa yfinance'den gram altın hesapla ──
-    ons = result.get("ons_altin_usd")
-    usdtry = result.get("dolar_tl")
-    gram_tl = result.get("gram_altin_tl")
-
-    # Hesaplanan gram altın (uluslararası referans)
-    if ons and usdtry:
-        result["gram_altin_hesaplanan"] = (ons * usdtry) / TROY_OUNCE_GRAM
-
-    # Truncgil'den gram altın gelemediyse, yfinance'den hesapla
-    if not gram_tl and ons and usdtry:
-        gram_tl = (ons * usdtry) / TROY_OUNCE_GRAM
-        result["gram_altin_tl"] = gram_tl
-        result["kaynak_truncgil"] = False
-        logger.warning("truncgil başarısız — gram altın yfinance'den hesaplandı")
-
-    # ── 5) Disk cache'den eksik alanları tamamla ─────────────
-    _critical_keys = ["altins1_fiyat", "gram_altin_tl", "dolar_tl", "ons_altin_usd"]
-    _missing = [k for k in _critical_keys if not result.get(k)]
-    if _missing:
-        cached = load_prices_from_cache()
-        if cached:
-            for k in _missing:
-                if cached.get(k):
-                    result[k] = cached[k]
-                    logger.info(f"disk cache'den tamamlandı: {k}={cached[k]}")
-            # Cache'den gelen gram_altin_tl ile eksik hesaplamaları güncelle
-            gram_tl = result.get("gram_altin_tl")
-            ons = result.get("ons_altin_usd")
-            usdtry = result.get("dolar_tl")
-            altins1_price = result.get("altins1_fiyat")
-
-    # ── 6) Hesaplamalar ─────────────────────────────────────
-    if gram_tl:
-        result["beklenen_altins1"] = gram_tl * ALTINS1_GRAM_KATSAYI
-
-    if altins1_price and gram_tl:
-        beklenen = gram_tl * ALTINS1_GRAM_KATSAYI
-        result["makas_pct"] = ((altins1_price - beklenen) / beklenen) * 100
-
-    # Başarılı veri varsa disk cache'e yaz (mesai dışı kullanım için)
-    if altins1_price and gram_tl:
-        save_prices_to_cache(result)
-        result["_cache_time"] = datetime.now(_TZ_ISTANBUL).isoformat()
-
-    return result
+    return {
+        "altins1_fiyat": current.altins1,
+        "gram_altin_tl": current.gram_gold_tl,
+        "ons_altin_usd": current.ons_usd,
+        "ons_gumus_usd": current.ons_silver_usd,
+        "dolar_tl": current.usdtry,
+        "has_altin_tl": current.piyasa_has_altin,
+        "ceyrek_altin": current.ceyrek_altin,
+        "yarim_altin": current.yarim_altin,
+        "tam_altin": current.tam_altin,
+        "beklenen_altins1": current.beklenen_altins1,
+        "makas_pct": current.makas_pct,
+        "gram_altin_hesaplanan": current.gram_gold_tl,
+        "update_date": current.update_date,
+        "kaynak_truncgil": current.kaynak_truncgil,
+        "hacim_lot": current.hacim_lot,
+        "hacim_tl": current.hacim_tl,
+        "_cache_time": current.cache_time,
+    }
 
 
 # ── yfinance: Tarihsel veri ────────────────────────────────────

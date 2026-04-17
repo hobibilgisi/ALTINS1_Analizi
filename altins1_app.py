@@ -8,6 +8,7 @@ Makas (%) = (Gerçek ALTINS1 - Beklenen) / Beklenen × 100
 
 Çalıştırma: streamlit run main.py
 """
+# pyright: reportUnknownVariableType=false
 
 import base64
 import logging
@@ -15,11 +16,13 @@ import os
 import sys
 import time
 from datetime import datetime
-from typing import List
+from typing import Callable, List, cast
 from zoneinfo import ZoneInfo
 
 import streamlit as st
-from streamlit_autorefresh import st_autorefresh
+from streamlit_autorefresh import st_autorefresh as _st_autorefresh  # pyright: ignore[reportMissingTypeStubs]
+
+st_autorefresh = cast(Callable[..., int], _st_autorefresh)
 
 _TZ_ISTANBUL = ZoneInfo("Europe/Istanbul")
 

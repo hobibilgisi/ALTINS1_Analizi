@@ -6,30 +6,30 @@ from app.market_data import LivePrices, resolve_current_prices
 from app.data_preparer import PreparedSeries
 
 
-def test_current_prices_prefers_series_last_values():
+def test_current_prices_prefers_live_values_when_available():
     live = LivePrices(
-        altins1=80.0,
-        ons_usd=3200.0,
-        usdtry=38.0,
+        altins1=83.99,
+        ons_usd=3210.0,
+        usdtry=38.56,
         ceyrek_altin=7000.0,
     )
     series = PreparedSeries(
-        altins1=pd.Series([81.5], index=[pd.Timestamp("2026-04-18")]),
-        ons_usd=pd.Series([3210.0], index=[pd.Timestamp("2026-04-18")]),
-        usdtry=pd.Series([38.5], index=[pd.Timestamp("2026-04-18")]),
-        gram_gold_tl=pd.Series([3971.0], index=[pd.Timestamp("2026-04-18")]),
-        beklenen=pd.Series([39.71], index=[pd.Timestamp("2026-04-18")]),
-        spread=pd.Series([105.24], index=[pd.Timestamp("2026-04-18")]),
+        altins1=pd.Series([83.88], index=[pd.Timestamp("2026-04-18")]),
+        ons_usd=pd.Series([3209.0], index=[pd.Timestamp("2026-04-18")]),
+        usdtry=pd.Series([38.54], index=[pd.Timestamp("2026-04-18")]),
+        gram_gold_tl=pd.Series([6988.04], index=[pd.Timestamp("2026-04-18")]),
+        beklenen=pd.Series([69.88], index=[pd.Timestamp("2026-04-18")]),
+        spread=pd.Series([20.03], index=[pd.Timestamp("2026-04-18")]),
     )
 
     current = resolve_current_prices(live=live, series=series)
 
-    assert current.altins1 == 81.5
+    assert current.altins1 == 83.99
     assert current.ons_usd == 3210.0
-    assert current.usdtry == 38.5
-    assert current.gram_gold_tl == 3971.0
-    assert round(current.beklenen_altins1, 2) == 39.71
-    assert round(current.makas_pct, 2) == round(((81.5 - 39.71) / 39.71) * 100, 2)
+    assert current.usdtry == 38.56
+    assert round(current.gram_gold_tl, 2) == round((3210.0 * 38.56) / 31.1035, 2)
+    assert round(current.beklenen_altins1, 2) == round(current.gram_gold_tl * 0.01, 2)
+    assert round(current.makas_pct, 2) == round(((83.99 - current.beklenen_altins1) / current.beklenen_altins1) * 100, 2)
     assert current.ceyrek_altin == 7000.0
 
 

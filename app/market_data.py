@@ -49,6 +49,22 @@ def _last_series_value(series: Optional[pd.Series]) -> Optional[float]:
     return float(clean.iloc[-1])
 
 
+def _series_or_live(series_value: Optional[float], live_value: Optional[float]) -> Optional[float]:
+    """Canli degeri oner, yoksa seri son degerine dus."""
+    if _has_value(live_value):
+        return live_value
+    return series_value
+
+
+def _overwrite_series_tail(series: Optional[pd.Series], value: Optional[float], date_value: pd.Timestamp) -> Optional[pd.Series]:
+    """Serinin son noktasini merkezi guncel degerle esitle."""
+    if series is None or not _has_value(value):
+        return series
+    updated = series.copy()
+    updated.loc[date_value] = float(value)
+    return updated.sort_index()
+
+
 @dataclass
 class LivePrices:
     """Anlik fiyatlar -- tumu tek seferde cekilir ve AYNI formullerle hesaplanir.
@@ -144,6 +160,13 @@ def resolve_current_prices(live: LivePrices, series: Any) -> CurrentPrices:
         kaynak_truncgil=live.kaynak_truncgil,
     )
 
+    series_altins1 = None
+    series_ons_usd = None
+    series_usdtry = None
+    series_ons_silver = None
+    series_faiz = None
+    series_gram = None
+
     if series is not None:
         series_altins1 = _last_series_value(getattr(series, "altins1", None))
         series_ons_usd = _last_series_value(getattr(series, "ons_usd", None))
@@ -151,27 +174,14 @@ def resolve_current_prices(live: LivePrices, series: Any) -> CurrentPrices:
         series_ons_silver = _last_series_value(getattr(series, "ons_silver_usd", None))
         series_faiz = _last_series_value(getattr(series, "faiz", None))
         series_gram = _last_series_value(getattr(series, "gram_gold_tl", None))
-        series_beklenen = _last_series_value(getattr(series, "beklenen", None))
-        series_spread = _last_series_value(getattr(series, "spread", None))
 
-        if series_altins1 is not None:
-            current.altins1 = series_altins1
-        if series_ons_usd is not None:
-            current.ons_usd = series_ons_usd
-        if series_usdtry is not None:
-            current.usdtry = series_usdtry
-        if series_ons_silver is not None:
-            current.ons_silver_usd = series_ons_silver
-        if series_faiz is not None:
-            current.faiz_us10y = series_faiz
-        if series_gram is not None:
-            current.gram_gold_tl = series_gram
-        if series_beklenen is not None:
-            current.beklenen_altins1 = series_beklenen
-        if series_spread is not None:
-            current.makas_pct = series_spread
+    current.altins1 = _series_or_live(series_altins1, live.altins1)
+    current.ons_usd = _series_or_live(series_ons_usd, live.ons_usd)
+    current.usdtry = _series_or_live(series_usdtry, live.usdtry)
+    current.ons_silver_usd = _series_or_live(series_ons_silver, live.ons_silver_usd)
+    current.faiz_us10y = _series_or_live(series_faiz, live.faiz_us10y)
 
-    if current.gram_gold_tl is None and _has_value(current.ons_usd) and _has_value(current.usdtry):
+    if _has_value(current.ons_usd) and _has_value(current.usdtry):
         current.gram_gold_tl = calculate_gram_gold_tl(current.ons_usd, current.usdtry)
     if _has_value(current.gram_gold_tl):
         current.beklenen_altins1 = calculate_expected_altins1(current.gram_gold_tl)
@@ -179,6 +189,38 @@ def resolve_current_prices(live: LivePrices, series: Any) -> CurrentPrices:
         current.makas_pct = calculate_spread(current.altins1, current.gram_gold_tl)
 
     return current
+
+
+def sync_series_with_current(series: Any, current: CurrentPrices) -> Any:
+    """Tum grafik serilerinin son noktasini merkezi current snapshot ile aynilar."""
+    if series is None:
+        return series
+
+    sync_date = pd.Timestamp(datetime.now().date())
+
+    series.altins1 = _overwrite_series_tail(getattr(series, "altins1", None), current.altins1, sync_date)
+    series.ons_usd = _overwrite_series_tail(getattr(series, "ons_usd", None), current.ons_usd, sync_date)
+    series.usdtry = _overwrite_series_tail(getattr(series, "usdtry", None), current.usdtry, sync_date)
+    series.ons_silver_usd = _overwrite_series_tail(getattr(series, "ons_silver_usd", None), current.ons_silver_usd, sync_date)
+    series.faiz = _overwrite_series_tail(getattr(series, "faiz", None), current.faiz_us10y, sync_date)
+    series.gram_gold_tl = _overwrite_series_tail(getattr(series, "gram_gold_tl", None), current.gram_gold_tl, sync_date)
+    series.beklenen = _overwrite_series_tail(getattr(series, "beklenen", None), current.beklenen_altins1, sync_date)
+    series.spread = _overwrite_series_tail(getattr(series, "spread", None), current.makas_pct, sync_date)
+
+    if _has_value(current.ons_usd) and _has_value(current.usdtry):
+        series.ons_gold_tl = _overwrite_series_tail(
+            getattr(series, "ons_gold_tl", None),
+            float(current.ons_usd * current.usdtry),
+            sync_date,
+        )
+    if _has_value(current.ons_silver_usd) and _has_value(current.usdtry):
+        series.gram_silver_tl = _overwrite_series_tail(
+            getattr(series, "gram_silver_tl", None),
+            float((current.ons_silver_usd * current.usdtry) / TROY_OUNCE_GRAM),
+            sync_date,
+        )
+
+    return series
 
 
 @dataclass
@@ -303,6 +345,7 @@ def fetch_market_data(period: str = "1y") -> MarketData:
         live=live,
     )
     data.current = resolve_current_prices(live=live, series=data.series)
+    data.series = sync_series_with_current(data.series, data.current)
 
     # == 8) Basarili veri varsa cache'e yaz ==
     if data.current.has_core_prices:

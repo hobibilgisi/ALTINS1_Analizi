@@ -11,13 +11,14 @@ from typing import Dict, List
 # MINOR: Yeni özellik (geriye uyumlu)
 # PATCH: Hata düzeltme
 # BUILD: Her değişiklik için artan 4 basamaklı sayaç (0001, 0002, ...)
-APP_VERSION = "4.4.0"
-APP_BUILD = "0040"
+APP_VERSION = "4.5.0"
+APP_BUILD = "0041"
 APP_VERSION_FULL = f"{APP_VERSION}.{APP_BUILD}"
 APP_VERSION_DATE = "2026-04-18"
 APP_VERSION_NOTES = [
-    "Versiyon sistemi BUILD numarası eklendi (4 basamak)",
-    "Her değişiklik kendi numarasıyla kayıt altında",
+    "#0040 — Normalize tabı ve tüm izleri kaldırıldı (8→7 tab)",
+    "#0039 — Canlı fiyat verisi öncelikli hale getirildi (SSoT)",
+    "#0038 — Legacy veri çekme kodu temizlendi",
 ]
 
 # ── Troy Ounce sabiti ──────────────────────────────────────────

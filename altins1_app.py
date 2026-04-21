@@ -251,6 +251,35 @@ st.markdown(f"""
     .stMainBlockContainer h2 {{ font-size: {_font_size + 10}px !important; font-weight: 600 !important; }}
     .stMainBlockContainer h3 {{ font-size: {_font_size + 6}px !important;  font-weight: 600 !important; }}
 
+    /* ── Bölüm Başlıkları (accent çizgi) ── */
+    .section-header {{
+        font-size: clamp(15px, 2vw, {_font_size + 4}px);
+        font-weight: 700;
+        color: #ffa726;
+        border-left: 4px solid #ffa726;
+        padding: 4px 0 4px 12px;
+        margin: 14px 0 8px 0;
+        letter-spacing: 0.2px;
+    }}
+
+    /* Sidebar subheader'ları — altın accent sol çizgi */
+    section[data-testid="stSidebar"] h3 {{
+        border-left: 3px solid #ffa726 !important;
+        padding-left: 10px !important;
+        color: #ffa726 !important;
+        font-size: clamp(12px, 1.6vw, {_font_size + 2}px) !important;
+        margin: 8px 0 4px 0 !important;
+    }}
+
+    /* ── Sidebar Metric Kartları ── */
+    section[data-testid="stSidebar"] [data-testid="metric-container"] {{
+        background: rgba(255,167,38,0.05) !important;
+        border: 1px solid rgba(255,167,38,0.15) !important;
+        border-radius: 8px !important;
+        padding: 8px 10px 6px 10px !important;
+        margin: 3px 0 !important;
+    }}
+
     /* ════════════════════════════════════════
        TAB PILL TASARIMI
        ════════════════════════════════════════ */
@@ -614,7 +643,7 @@ with tab7:
 # 4) E-POSTA BİLDİRİM
 # ═══════════════════════════════════════════════════════════════
 st.markdown("---")
-st.header("📧 E-posta Bildirim")
+st.markdown('<div class="section-header">📧 E-posta Bildirim</div>', unsafe_allow_html=True)
 
 with st.expander("E-posta Ayarları ve Gönderim", expanded=False):
     # Ortam değişkenlerinden config yükle

@@ -158,10 +158,19 @@ with st.sidebar:
     st.subheader("📅 Tarihsel Veri")
     period = st.selectbox("Periyot", ["1mo", "3mo", "6mo", "1y", "2y"], index=3)
 
-# ── Dinamik yazı boyutu CSS ────────────────────────────────────
+# ── Global CSS (font + layout + tab tasarımı) ──────────────────
 st.markdown(f"""
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-    /* ── Streamlit Cloud GitHub/Fork butonu ve footer gizleme ── */
+    /* ── Inter font — tüm uygulama ── */
+    html, body, [class*="css"], .stApp,
+    .stMainBlockContainer, section[data-testid="stSidebar"] {{
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    }}
+
+    /* ── Streamlit Cloud butonları ve footer gizleme ── */
     .stDeployButton,
     [data-testid="stToolbarActions"] > a[href*="github"],
     .stAppDeployButton,
@@ -170,126 +179,124 @@ st.markdown(f"""
     [data-testid="manage-app-button"] {{
         display: none !important;
     }}
-    footer {{
-        visibility: hidden !important;
-        height: 0 !important;
-    }}
-    footer::after {{
-        display: none !important;
-    }}
-    /* Sidebar genişliği: ekranın 1/4'ü (sadece açıkken) */
+    footer {{ visibility: hidden !important; height: 0 !important; }}
+    footer::after {{ display: none !important; }}
+
+    /* ── Sidebar ── */
     section[data-testid="stSidebar"][aria-expanded="true"] {{
         width: min(33vw, 400px) !important;
         min-width: 220px;
         max-width: 98vw;
     }}
-    /* Ana içerik sidebar kapanınca tüm ekrana yayılsın */
-    .stMainBlockContainer {{
-        max-width: 100% !important;
-    }}
+    .stMainBlockContainer {{ max-width: 100% !important; }}
+
     section[data-testid="stSidebar"] .stMetricValue {{
         font-size: clamp(10px, 2vw, 22px) !important;
-        min-width: 0 !important;
-        line-height: 1.1 !important;
-        word-break: break-word !important;
-        overflow: visible !important;
-        text-overflow: unset !important;
-        white-space: normal !important;
+        font-weight: 600 !important;
+        min-width: 0 !important; line-height: 1.1 !important;
+        word-break: break-word !important; overflow: visible !important;
+        text-overflow: unset !important; white-space: normal !important;
         flex-shrink: 1 !important;
     }}
     section[data-testid="stSidebar"] .stMetricLabel {{
         font-size: clamp(9px, 1.7vw, 15px) !important;
-        min-width: 0 !important;
-        line-height: 1.1 !important;
-        word-break: break-word !important;
-        overflow: visible !important;
-        text-overflow: unset !important;
-        white-space: normal !important;
+        font-weight: 400 !important;
+        min-width: 0 !important; line-height: 1.1 !important;
+        word-break: break-word !important; overflow: visible !important;
+        text-overflow: unset !important; white-space: normal !important;
         flex-shrink: 1 !important;
     }}
-    /* Genel metin, paragraf, caption, metric, tablo */
-    .stMainBlockContainer p,
-    .stMainBlockContainer span,
-    .stMainBlockContainer label,
-    .stMainBlockContainer td,
-    .stMainBlockContainer th,
-    .stMainBlockContainer .stMetricValue,
-    .stMainBlockContainer .stMetricLabel,
-    .stMainBlockContainer .stCaption,
-    .stMainBlockContainer li,
-    .stMainBlockContainer div[data-testid="stText"] {{
+
+    /* ── Genel metin ── */
+    .stMainBlockContainer p, .stMainBlockContainer span,
+    .stMainBlockContainer label, .stMainBlockContainer td,
+    .stMainBlockContainer th, .stMainBlockContainer .stMetricValue,
+    .stMainBlockContainer .stMetricLabel, .stMainBlockContainer .stCaption,
+    .stMainBlockContainer li, .stMainBlockContainer div[data-testid="stText"] {{
         font-size: clamp(10px, 2vw, 22px) !important;
-        min-width: 0 !important;
-        line-height: 1.1 !important;
-        word-break: break-word !important;
-        overflow: visible !important;
-        text-overflow: unset !important;
-        white-space: normal !important;
+        min-width: 0 !important; line-height: 1.2 !important;
+        word-break: break-word !important; overflow: visible !important;
+        text-overflow: unset !important; white-space: normal !important;
         flex-shrink: 1 !important;
     }}
-    /* Metric delta */
     .stMainBlockContainer div[data-testid="stMetricDelta"] {{
         font-size: {max(_font_size - 2, 10)}px !important;
     }}
-    /* Checkbox, radio, selectbox etiketleri */
     .stMainBlockContainer .stCheckbox label span,
     .stMainBlockContainer .stRadio label span,
     .stMainBlockContainer .stSelectbox label {{
         font-size: clamp(9px, 1.7vw, 15px) !important;
-        min-width: 0 !important;
-        line-height: 1.1 !important;
-        word-break: break-word !important;
-        overflow: visible !important;
-        text-overflow: unset !important;
-        white-space: normal !important;
+        min-width: 0 !important; line-height: 1.1 !important;
+        word-break: break-word !important; overflow: visible !important;
+        text-overflow: unset !important; white-space: normal !important;
         flex-shrink: 1 !important;
     }}
-    /* Tab etiketleri */
-    .stMainBlockContainer button[data-baseweb="tab"] {{
-        font-size: {_font_size + 2}px !important;
-    }}
-    /* Başlıklar (header/subheader) */
-    .stMainBlockContainer h1 {{
-        font-size: {_font_size + 14}px !important;
-    }}
-    .stMainBlockContainer h2 {{
-        font-size: {_font_size + 10}px !important;
-    }}
-    .stMainBlockContainer h3 {{
-        font-size: {_font_size + 6}px !important;
-    }}
-    /* ── Tab başlıkları: taşma yerine alt satıra geç ── */
+
+    /* ── Başlıklar ── */
+    .stMainBlockContainer h1 {{ font-size: {_font_size + 14}px !important; font-weight: 700 !important; }}
+    .stMainBlockContainer h2 {{ font-size: {_font_size + 10}px !important; font-weight: 600 !important; }}
+    .stMainBlockContainer h3 {{ font-size: {_font_size + 6}px !important;  font-weight: 600 !important; }}
+
+    /* ════════════════════════════════════════
+       TAB PILL TASARIMI
+       ════════════════════════════════════════ */
+
+    /* Tab listesi: hafif arka planlı kapsayıcı */
     div[data-baseweb="tab-list"] {{
+        background: rgba(255,255,255,0.05) !important;
+        border-radius: 12px !important;
+        padding: 5px 6px !important;
+        gap: 4px !important;
         flex-wrap: wrap !important;
-        gap: 4px 0 !important;
+        border: 1px solid rgba(255,255,255,0.08) !important;
+        margin-bottom: 4px !important;
     }}
+
+    /* Tüm tab butonları — pasif */
     div[data-baseweb="tab-list"] button[data-baseweb="tab"] {{
+        border-radius: 8px !important;
+        padding: 7px 14px !important;
+        background: transparent !important;
+        color: #90a4ae !important;
+        border: none !important;
+        font-size: {_font_size}px !important;
+        font-weight: 500 !important;
+        font-family: 'Inter', sans-serif !important;
         white-space: nowrap !important;
+        transition: background 0.18s ease, color 0.18s ease !important;
     }}
-    /* ── Seçili tab: alt çizgi highlight yerine text underline ── */
-    div[data-baseweb="tab-highlight"] {{
+
+    /* Hover */
+    div[data-baseweb="tab-list"] button[data-baseweb="tab"]:hover {{
+        background: rgba(255,167,38,0.15) !important;
+        color: #ffa726 !important;
+    }}
+
+    /* Aktif tab — gold pill */
+    div[data-baseweb="tab-list"] button[data-baseweb="tab"][aria-selected="true"] {{
+        background: linear-gradient(135deg, #ffa726 0%, #ffca28 100%) !important;
+        color: #1a1a2e !important;
+        font-weight: 700 !important;
+        text-decoration: none !important;
+        box-shadow: 0 2px 10px rgba(255,167,38,0.35) !important;
+    }}
+
+    /* Varsayılan highlight/border çizgilerini gizle */
+    div[data-baseweb="tab-highlight"],
+    div[data-baseweb="tab-border"] {{
         display: none !important;
     }}
-    div[data-baseweb="tab-list"] button[aria-selected="true"] {{
-        text-decoration: underline !important;
-        text-underline-offset: 4px !important;
-        text-decoration-thickness: 3px !important;
-    }}
+
     /* ── Responsive: Mobil (<768px) ── */
     @media (max-width: 768px) {{
         section[data-testid="stSidebar"][aria-expanded="true"] {{
-            width: 85vw !important;
-            min-width: 0 !important;
+            width: 85vw !important; min-width: 0 !important;
         }}
-        .stMainBlockContainer h1 {{
-            font-size: {max(_font_size + 4, 20)}px !important;
-        }}
-        .stMainBlockContainer h2 {{
-            font-size: {max(_font_size + 2, 18)}px !important;
-        }}
+        .stMainBlockContainer h1 {{ font-size: {max(_font_size + 4, 20)}px !important; }}
+        .stMainBlockContainer h2 {{ font-size: {max(_font_size + 2, 18)}px !important; }}
         div[data-baseweb="tab-list"] button[data-baseweb="tab"] {{
             font-size: {max(_font_size - 2, 12)}px !important;
-            padding: 6px 8px !important;
+            padding: 6px 10px !important;
         }}
     }}
 </style>

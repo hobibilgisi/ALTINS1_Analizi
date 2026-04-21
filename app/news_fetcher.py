@@ -1,6 +1,6 @@
 """
 ALTINS1 Analiz — Haber Çekme Modülü
-RSS beslemelerinden altın ve finans haberlerini çeker ve filtreler.
+RSS beslemelerinden ve BigPara scraper'dan altın/finans haberleri çeker ve filtreler.
 """
 
 import logging
@@ -10,9 +10,19 @@ from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Tuple
 
 import feedparser
+import requests
+from bs4 import BeautifulSoup
 from email.utils import parsedate_to_datetime
 
 from app.config import RSS_FEEDS, NEWS_KEYWORDS, NEWS_KEYWORDS_WEEKLY
+
+_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                  "AppleWebKit/537.36 (KHTML, like Gecko) "
+                  "Chrome/120.0.0.0 Safari/537.36",
+}
+_BIGPARA_BASE = "https://bigpara.hurriyet.com.tr"
+_BIGPARA_ALTIN_URL = "https://bigpara.hurriyet.com.tr/altin/haber/"
 
 logger = logging.getLogger(__name__)
 
@@ -85,12 +95,48 @@ def fetch_rss_feed(feed_url: str, feed_name: str) -> List[NewsItem]:
         return []
 
 
+def fetch_bigpara_altin_news() -> List[NewsItem]:
+    """BigPara Hürriyet altın haber sayfasını scrape eder.
+
+    RSS beslemesi olmadığından BeautifulSoup ile HTML parse edilir.
+    Tarih bilgisi bulunmadığında None döner — filtre sırasında günlük havuza alınır.
+    """
+    try:
+        r = requests.get(_BIGPARA_ALTIN_URL, headers=_HEADERS, timeout=12)
+        r.raise_for_status()
+        soup = BeautifulSoup(r.text, "html.parser")
+
+        seen: set = set()
+        items: List[NewsItem] = []
+        for a in soup.find_all("a", href=True):
+            href: str = a["href"]
+            if "/altin/haber/" not in href:
+                continue
+            title = _strip_html(a.get_text(strip=True))
+            if len(title) < 15:
+                continue
+            link = href if href.startswith("http") else _BIGPARA_BASE + href
+            if link in seen:
+                continue
+            seen.add(link)
+            items.append(NewsItem(title=title, link=link, source="BigPara Altın"))
+            if len(items) >= 25:
+                break
+
+        logger.info(f"BigPara altın scraper: {len(items)} haber")
+        return items
+    except Exception as e:
+        logger.error(f"BigPara altın scraper hatası: {e}")
+        return []
+
+
 def fetch_all_news() -> List[NewsItem]:
-    """Tüm RSS kaynaklarından haber çeker."""
+    """Tüm RSS kaynaklarından ve BigPara scraper'dan haber çeker."""
     all_news = []
     for feed in RSS_FEEDS:
         items = fetch_rss_feed(feed["url"], feed["name"])
         all_news.extend(items)
+    all_news.extend(fetch_bigpara_altin_news())
     return all_news
 
 

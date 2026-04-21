@@ -92,22 +92,27 @@ def evaluate_volume_signal(
         sig.active = True
         if ratio >= 3.0:
             sig.message = (
-                f"🔶 YÜKSEK HACİM DİKKAT! Günlük {hacim_lot:,.0f} lot — "
-                f"aylık ort'un {ratio:.1f}×'i. Olağandışı hareketlilik."
+                f"🔶 YÜKSEK HACİM DİKKAT!\n"
+                f"Bugün {hacim_lot:,.0f} lot işlem gördü.\n"
+                f"Bu, 30 günlük ortalamanın ({avg_lot:,.0f} lot) {ratio:.1f} katı.\n"
+                f"Olağandışı hareketlilik — yakın takip önerilir."
             )
             sig.color = "#e65100"
         else:
             sig.message = (
-                f"⚠️ HACİM DİKKAT. Günlük {hacim_lot:,.0f} lot — "
-                f"aylık ort'un {ratio:.1f}×'i. Artan ilgi gözlemleniyor."
+                f"⚠️ HACİM DİKKAT\n"
+                f"Bugün {hacim_lot:,.0f} lot işlem gördü.\n"
+                f"30 günlük ort: {avg_lot:,.0f} lot → {ratio:.1f}× üzerinde.\n"
+                f"Artan ilgi gözlemleniyor."
             )
             sig.color = "#f57f17"
     else:
         sig.message = (
-            f"⚪ Hacim Normal. {hacim_lot:,.0f} lot — "
-            f"aylık ort'un %{ratio * 100:.0f}'i."
+            f"Bugün {hacim_lot:,.0f} lot işlem gördü.\n"
+            f"30 günlük ort: {avg_lot:,.0f} lot\n"
+            f"Hacim normal seyrediyor (%{ratio * 100:.0f})."
         )
-        sig.color = "#37474f"
+        sig.color = "#f9a825"  # koyu sarı — her durumda
 
     return sig
 
@@ -178,37 +183,42 @@ def evaluate_bist100_signal(
         # Ters korelasyon: yön sinyali anlamlı
         if sig.bist_trend == "yukari" and sig.s1_trend in ("asagi", "yatay"):
             sig.message = (
-                f"📉 BIST Yükseliyor, S1 Baskı Altında ({corr_str})\n"
-                f"BIST +%{bist_5d:.1f} / S1 %{s1_5d:+.1f} (5g). "
-                f"Ters korelasyon aktif — S1'de baskı devam edebilir."
+                f"📉 BIST Yükseliyor — S1 Baskı Altında\n"
+                f"Son 5 gün: BIST +%{bist_5d:.1f} / S1 %{s1_5d:+.1f}\n"
+                f"Korelasyon: {corr_str} (ters ilişki aktif)\n"
+                f"S1'de baskı devam edebilir."
             )
-            sig.color = "#c62828"
+            sig.color = "#1565c0"
         elif sig.bist_trend == "asagi" and sig.s1_trend in ("yukari", "yatay"):
             sig.message = (
-                f"📈 BIST Düşüyor, S1 Güç Kazanabilir ({corr_str})\n"
-                f"BIST %{bist_5d:.1f} / S1 +%{s1_5d:.1f} (5g). "
-                f"Ters korelasyon aktif — S1 için fırsat penceresi olabilir."
+                f"📈 BIST Düşüyor — S1 Güç Kazanabilir\n"
+                f"Son 5 gün: BIST %{bist_5d:.1f} / S1 +%{s1_5d:.1f}\n"
+                f"Korelasyon: {corr_str} (ters ilişki aktif)\n"
+                f"S1 için fırsat penceresi olabilir."
             )
-            sig.color = "#1b5e20"
+            sig.color = "#0d47a1"
         else:
             sig.message = (
-                f"↔️ Ters Korelasyon Var, Trend Belirsiz ({corr_str})\n"
-                f"BIST %{bist_5d:+.1f} / S1 %{s1_5d:+.1f} (5g). "
-                f"Yön netleşene dek bekle."
+                f"↔️ Ters Korelasyon Var — Trend Belirsiz\n"
+                f"Son 5 gün: BIST %{bist_5d:+.1f} / S1 %{s1_5d:+.1f}\n"
+                f"Korelasyon: {corr_str}\n"
+                f"Yön netleşene dek izlemeye devam et."
             )
-            sig.color = "#4a148c"
+            sig.color = "#1565c0"
     elif corr > 0.3:
         sig.message = (
-            f"🔄 Pozitif Korelasyon ({corr_str}) — Olağandışı\n"
-            f"S1 ve BIST aynı yönde hareket ediyor. "
-            f"Tipik ters korelasyon geçici bozulmuş olabilir."
+            f"🔄 Pozitif Korelasyon — Olağandışı\n"
+            f"Son 5 gün: BIST %{bist_5d:+.1f} / S1 %{s1_5d:+.1f}\n"
+            f"Korelasyon: {corr_str}\n"
+            f"S1 ve BIST aynı yönde — tipik ters ilişki bozulmuş."
         )
-        sig.color = "#0277bd"
+        sig.color = "#1565c0"
     else:
         sig.message = (
-            f"⚪ Korelasyon Zayıf ({corr_str})\n"
+            f"Korelasyon zayıf ({corr_str})\n"
+            f"Son 5 gün: BIST %{bist_5d:+.1f} / S1 %{s1_5d:+.1f}\n"
             f"S1 ile BIST arasında belirgin ilişki gözlenmiyor."
         )
-        sig.color = "#37474f"
+        sig.color = "#1565c0"
 
     return sig

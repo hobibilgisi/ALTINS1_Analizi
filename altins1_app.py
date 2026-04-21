@@ -326,9 +326,51 @@ def load_news_split():
     return get_daily_and_weekly_news()
 
 
-# ── Ana Sayfa ──────────────────────────────────────────────────
-st.title("📊 ALTINS1 Analiz — Altın Sertifikası Takip ve Sinyal Sistemi")
-st.caption("ALTINS1 = 0.01 gram altın sertifikası | Beklenen Fiyat = Gram Altın TL × 0.01")
+# ── Hero Başlık ────────────────────────────────────────────────
+st.markdown("""
+<div style="
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    border: 1px solid rgba(255,167,38,0.25);
+    border-radius: 16px;
+    padding: 28px 32px 22px 32px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+">
+    <div style="flex-shrink:0;">
+        <img src="./static/icon-128.png"
+             style="width:64px; height:64px; border-radius:12px;
+                    box-shadow: 0 0 20px rgba(255,167,38,0.4);" />
+    </div>
+    <div>
+        <div style="
+            font-size: clamp(20px, 3vw, 32px);
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            line-height: 1.15;
+            background: linear-gradient(90deg, #ffa726 0%, #ffe082 60%, #ffa726 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        ">ALTINS1 Analiz</div>
+        <div style="
+            font-size: clamp(12px, 1.6vw, 16px);
+            color: #b0bec5;
+            margin-top: 4px;
+            font-weight: 400;
+            letter-spacing: 0.2px;
+        ">Altın Sertifikası Takip &amp; Sinyal Sistemi</div>
+        <div style="
+            font-size: clamp(10px, 1.2vw, 13px);
+            color: rgba(255,167,38,0.7);
+            margin-top: 6px;
+            font-family: monospace;
+            letter-spacing: 0.5px;
+        ">ALTINS1 = 0.01 gr altın sertifikası &nbsp;·&nbsp; Beklenen = Gram Altın TL × 0.01</div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 # ── Seans Durumu ───────────────────────────────────────────────
 bist_acik = is_bist_open()
@@ -487,7 +529,7 @@ if altins1_fiyat is None or gram_altin_tl is None:
 # 2) GRAFİKLER
 # ═══════════════════════════════════════════════════════════════
 st.markdown("---")
-st.header("📈 Grafikler")
+st.markdown('<div class="section-header">📈 Grafikler</div>', unsafe_allow_html=True)
 
 
 # ── Tab Bağlamı ────────────────────────────────────────────────

@@ -108,6 +108,9 @@ def apply_chart_font(
             )
 
     _drag = False if grafik_kilidi else "zoom"
+    # Grafik kilidi açıkken hover kapalı: dokunuşta tooltip grafik görüşünü bloklamaz.
+    # Kapalıyken (masaüstü) normal "x" hover.
+    _hovermode = False if grafik_kilidi else "x"
     fig.update_layout(
         font=dict(size=font_size),
         title_font_size=font_size + 4,
@@ -117,8 +120,8 @@ def apply_chart_font(
         title_x=0.0,
         title_xanchor="left",
         title_y=0.96,
-        margin=dict(l=50, r=50, t=60, b=80),
-        hovermode="x",
+        margin=dict(l=5, r=5, t=50, b=60),
+        hovermode=_hovermode,
         hoverlabel=dict(
             font_size=font_size,
             namelength=-1,
@@ -154,7 +157,8 @@ def apply_chart_font(
         for ann in fig.layout.annotations:
             ann.font = dict(size=font_size)
 
-    # Son günün verisini sağa uzat (düz çizgi) — gelecek tarih göstermeden
+    # Son günün verisini 5 gün sağa uzat — geniş dokunma alanı oluşturur,
+    # kullanıcı bu boş bölgeye dokunarak son günün değerini kolayca okuyabilir.
     _max_date = None
     for _tr in fig.data:
         if _tr.__class__.__name__ != "Scatter":
@@ -165,13 +169,13 @@ def apply_chart_font(
         _last_y = _tr.y[-1] if _tr.y[-1] is not None else None
         if _last_y is None:
             continue
-        _ext_x = [_last_x + pd.Timedelta(hours=h) for h in (4, 8, 12, 16, 20)]
+        _ext_x = [_last_x + pd.Timedelta(days=d) for d in (1, 2, 3, 4, 5)]
         _tr.x = list(_tr.x) + _ext_x
         _tr.y = list(_tr.y) + [_last_y] * 5
         if _max_date is None or _last_x > _max_date:
             _max_date = _last_x
     if _max_date is not None:
-        fig.update_xaxes(range=[None, _max_date + pd.Timedelta(hours=24)])
+        fig.update_xaxes(range=[None, _max_date + pd.Timedelta(days=6)])
 
     turkce_tarih_ekseni(fig)
     return fig

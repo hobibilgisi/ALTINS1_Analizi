@@ -82,22 +82,16 @@ def render(ctx: "TabContext") -> None:
             else:
                 _makas_series = (a1 - bek) / bek * 100
             _makas_series_int = _makas_series.round(0).astype(int)
-            # Son günü sağa uzat (gelecek tarih göstermeden)
-            _last_date = _makas_series.index[-1]
-            _last_val = _makas_series_int.values[-1]
-            _ext_x = [_last_date + pd.Timedelta(hours=h) for h in (4, 8, 12, 16, 20)]
-            _ext_y = [a1.max() * 1.03] * 5
-            _ext_val = [_last_val] * 5
             fig_vs.add_trace(
                 go.Scatter(
-                    x=list(_makas_series.index) + _ext_x,
-                    y=[a1.max() * 1.03] * len(_makas_series) + _ext_y,
+                    x=list(_makas_series.index),
+                    y=[a1.max() * 1.03] * len(_makas_series),
                     mode="lines",
                     name="Makas %",
                     line=dict(color="#fff", width=2, dash="solid"),
                     showlegend=False,
                     hovertemplate="<b style='color:white'>Makas</b>: %{customdata:+d}%<extra></extra>",
-                    customdata=list(_makas_series_int.values) + _ext_val,
+                    customdata=list(_makas_series_int.values),
                 ),
             )
             add_ema_traces(fig_vs, a1, _t1_ema_s1, label_prefix="s1 ", line_dash="dot")
@@ -139,9 +133,8 @@ def render(ctx: "TabContext") -> None:
                     _fig_cmp.update_layout(
                         template="plotly_dark",
                         height=ctx.chart_height,
-                        hovermode="x unified",
+                        title="ALTINS1 — BIST100 Karşılaştırması",
                         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
-                        margin=dict(l=10, r=10, t=30, b=10),
                     )
                     _fig_cmp.update_yaxes(title_text="ALTINS1 (₺)", secondary_y=False, tickprefix="₺")
                     _fig_cmp.update_yaxes(title_text="BIST100", secondary_y=True, showgrid=False)

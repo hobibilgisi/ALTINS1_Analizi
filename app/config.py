@@ -12,13 +12,14 @@ from typing import Dict, List
 # PATCH: Hata düzeltme
 # BUILD: Her değişiklik için artan 4 basamaklı sayaç (0001, 0002, ...)
 APP_VERSION = "4.5.0"
-APP_BUILD = "0059"
+APP_BUILD = "0061"
 APP_VERSION_FULL = f"{APP_VERSION}.{APP_BUILD}"
 APP_VERSION_DATE = "2026-04-21"
 APP_VERSION_NOTES = [
-    "#0058 — Bölüm başlıkları accent çizgi + sidebar metric kart görünümü",
-    "#0057 — BigPara altın haber scraper eklendi",
-    "#0047 — ALTINS1 vs BIST100 karşılaştırma grafiği (Analiz tabı)",
+    "#0060 — Mobil grafik: kenar bosluk azaltildi, 5-gun uzatma, BIST baslik, hover kilidi",
+    "#0058 — Bolum basliklarinda accent cizgi + sidebar metric kart gorunumu",
+    "#0057 — BigPara altin haber scraper eklendi",
+    "#0047 — ALTINS1 vs BIST100 karsilastirma grafigi (Analiz tabi)",
     "#0046 — Hacim etiketleri düzeltildi (ALTINS1 Günlük/30G Ort.)",
 ]
 

@@ -63,3 +63,4 @@ Format: `BUILD | TARİH | VERSİYON | AÇIKLAMA | GIT HASH`
 | 0057 | 2026-04-21 | 4.5.0 | 1 dosya değişikliği | d6e9a7c |
 | 0059 | 2026-04-21 | 4.5.0 | 2 dosya değişikliği | 5e76ed2 |
 | 0061 | 2026-04-21 | 4.5.0 | 3 dosya değişikliği | 00bab04 |
+| 0063 | 2026-04-21 | 4.5.0 | 3 dosya değişikliği | 226868e |

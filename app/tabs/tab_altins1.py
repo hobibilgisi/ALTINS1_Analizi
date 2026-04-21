@@ -136,8 +136,8 @@ def render(ctx: "TabContext") -> None:
                         title="ALTINS1 — BIST100 Karşılaştırması",
                         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
                     )
-                    _fig_cmp.update_yaxes(title_text="ALTINS1 (₺)", secondary_y=False, tickprefix="₺")
-                    _fig_cmp.update_yaxes(title_text="BIST100", secondary_y=True, showgrid=False)
+                    _fig_cmp.update_yaxes(title_text="", secondary_y=False, tickprefix="₺")
+                    _fig_cmp.update_yaxes(title_text="", secondary_y=True, showgrid=False)
                     apply_chart_font(_fig_cmp, ctx.font_size, ctx.chart_height, ctx.grafik_kilidi)
                     st.plotly_chart(_fig_cmp, width="stretch", config=PLOTLY_CONFIG)
                 else:

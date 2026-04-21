@@ -145,6 +145,8 @@ def apply_chart_font(
     )
     fig.update_yaxes(
         tickfont_size=font_size - 1,
+        ticklabelposition="inside",
+        title_text="",
         showspikes=True,
         spikemode="across",
         spikesnap="cursor",

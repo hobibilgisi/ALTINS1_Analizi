@@ -108,14 +108,14 @@ def bump_build():
             )
             prev_ver = re.search(r'APP_VERSION\s*=\s*"([^"]+)"', prev.stdout)
             if prev_ver and prev_ver.group(1).split(".")[0] != old_major:
-                print("⚠️  MAJOR versiyon değişti! MIMARI_RAPOR.md güncellemeyi unutma!")
+                print("[!] MAJOR versiyon degisti! MIMARI_RAPOR.md guncellemeyi unutma!")
         except Exception:
             pass
 
     # Değişen dosyaları staging'e ekle
     subprocess.run(["git", "add", CONFIG_PATH, BUILD_LOG_PATH], cwd=REPO_ROOT)
 
-    print(f"✅ Build {old_build:04d} → {new_build_str} ({commit_msg})")
+    print(f"[OK] Build {old_build:04d} -> {new_build_str} ({commit_msg})")
 
 
 if __name__ == "__main__":

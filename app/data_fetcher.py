@@ -439,7 +439,7 @@ def _save_volume_history(hacim_lot: float) -> None:
 
 
 def load_volume_avg(days: int = 30) -> Optional[float]:
-    """Son N günün ortalama hacmini (lot) döndürür."""
+    """Son N günün ortalama hacmini (lot) döndürür — yerel cache'den."""
     try:
         if not os.path.exists(_VOLUME_HISTORY_PATH):
             return None
@@ -455,3 +455,27 @@ def load_volume_avg(days: int = 30) -> Optional[float]:
     except Exception as e:
         logger.error(f"Hacim geçmişi okuma hatası: {e}")
         return None
+
+
+def fetch_volume_avg_yf(days: int = 30) -> Optional[float]:
+    """yfinance'den ALTINS1.IS tarihsel hacim verisini çekip günlük ortalama döndürür.
+
+    Lot cinsinden hacim ALTINS1.IS'de Volume alanında tutulur.
+    Başarısız olursa yerel cache'e düşer.
+    """
+    try:
+        ticker = yf.Ticker("ALTINS1.IS")
+        hist = ticker.history(period=f"{days}d", interval="1d")
+        if hist.empty or "Volume" not in hist.columns:
+            logger.warning("yfinance ALTINS1.IS hacim verisi yok, yerel cache'e düşülüyor")
+            return load_volume_avg(days)
+        vol = hist["Volume"].dropna()
+        vol = vol[vol > 0]
+        if vol.empty:
+            return load_volume_avg(days)
+        avg = float(vol.mean())
+        logger.info(f"yfinance ALTINS1.IS {days}g ort. hacim: {avg:,.0f} lot ({len(vol)} gün)")
+        return avg
+    except Exception as e:
+        logger.error(f"yfinance ALTINS1.IS hacim hatası: {e}")
+        return load_volume_avg(days)

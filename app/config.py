@@ -12,13 +12,14 @@ from typing import Dict, List
 # PATCH: Hata düzeltme
 # BUILD: Her değişiklik için artan 4 basamaklı sayaç (0001, 0002, ...)
 APP_VERSION = "4.5.0"
-APP_BUILD = "0041"
+APP_BUILD = "0049"
 APP_VERSION_FULL = f"{APP_VERSION}.{APP_BUILD}"
-APP_VERSION_DATE = "2026-04-18"
+APP_VERSION_DATE = "2026-04-21"
 APP_VERSION_NOTES = [
-    "#0040 — Normalize tabı ve tüm izleri kaldırıldı (8→7 tab)",
-    "#0039 — Canlı fiyat verisi öncelikli hale getirildi (SSoT)",
-    "#0038 — Legacy veri çekme kodu temizlendi",
+    "#0047 — ALTINS1 vs BIST100 karşılaştırma grafiği (Analiz tabı)",
+    "#0046 — Hacim etiketleri düzeltildi (ALTINS1 Günlük/30G Ort.)",
+    "#0045 — 30G ort. hacim yfinance ALTINS1.IS'den gerçek veriyle çekiliyor",
+    "#0044 — Normalize tabı ve tüm izleri kaldırıldı (8→7 tab)",
 ]
 
 # ── Troy Ounce sabiti ──────────────────────────────────────────

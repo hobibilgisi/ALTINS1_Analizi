@@ -443,19 +443,21 @@ with _piyasa_container:
         if _current.ceyrek_altin is not None:
             _market_items.append(("Çeyrek Altın", f"₺{_current.ceyrek_altin:,.2f}"))
 
-        # Hacim (Lot) — anlık + aylık ortalama
-        if _current.hacim_lot is not None:
-            _market_items.append(("Hacim (Lot)", f"{_current.hacim_lot:,.0f}"))
-            from app.data_fetcher import load_volume_avg
-            _avg_vol = load_volume_avg(30)
-            if _avg_vol is not None:
-                _market_items.append(("30G Ort. Hacim", f"{_avg_vol:,.0f}"))
-
         for i in range(0, len(_market_items), 2):
             cols = st.columns(2)
             cols[0].metric(_market_items[i][0], _market_items[i][1])
             if i + 1 < len(_market_items):
                 cols[1].metric(_market_items[i + 1][0], _market_items[i + 1][1])
+
+        # Hacim — ALTINS1 günlük + 30 günlük ortalama yan yana
+        if _current.hacim_lot is not None:
+            from app.data_fetcher import fetch_volume_avg_yf
+            _avg_vol = fetch_volume_avg_yf(30)
+            st.markdown("**📦 ALTINS1 Hacim (Lot)**")
+            _hv1, _hv2 = st.columns(2)
+            _hv1.metric("Günlük", f"{_current.hacim_lot:,.0f}")
+            if _avg_vol is not None:
+                _hv2.metric("30G Ortalama", f"{_avg_vol:,.0f}")
 
         if _current.update_date:
             st.caption(f"📡 {_current.update_date}")

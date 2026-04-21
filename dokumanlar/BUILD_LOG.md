@@ -48,3 +48,8 @@ Format: `BUILD | TARİH | VERSİYON | AÇIKLAMA | GIT HASH`
 | 0039 | 2026-04-18 | 4.4.0 | 2 dosya değişikliği | 13e1915 |
 | 0040 | 2026-04-18 | 4.4.0 | 6 dosya değişikliği | a3209a8 |
 | 0041 | 2026-04-18 | 4.5.0 | 2 dosya değişikliği | 3f07cbb |
+| 0042 | 2026-04-19 | 4.5.0 | 0 dosya değişikliği | 9b86a3e |
+| 0043 | 2026-04-19 | 4.5.0 | 2 dosya değişikliği | 9b86a3e |
+| 0044 | 2026-04-20 | 4.5.0 | 2 dosya değişikliği | 9b86a3e |
+| 0048 | 2026-04-21 | 4.5.0 | 5 dosya değişikliği | 9b86a3e |
+| 0049 | 2026-04-21 | 4.5.0 | 6 dosya değişikliği | 9b86a3e |

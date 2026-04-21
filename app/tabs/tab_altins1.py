@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, cast
 
 import pandas as pd
 import plotly.graph_objects as go  # pyright: ignore[reportMissingTypeStubs]
+from plotly.subplots import make_subplots  # pyright: ignore[reportMissingTypeStubs]
 import streamlit as st
 
 from app.charts import create_altins1_vs_expected_chart
@@ -22,6 +23,7 @@ def render(ctx: "TabContext") -> None:
     beklenen_hist_series = ctx.series.beklenen
     spread_hist_series = ctx.series.spread
     usdtry_hist_series = ctx.series.usdtry
+    bist100_series = ctx.series.bist100
     beklenen = ctx.current.beklenen_altins1
 
     with st.expander("⚙️ Grafik Ayarları", expanded=False):
@@ -97,6 +99,51 @@ def render(ctx: "TabContext") -> None:
             add_ema_traces(fig_vs, bek, _t1_ema_gr, label_prefix="gr ")
             apply_chart_font(fig_vs, ctx.font_size, ctx.chart_height, ctx.grafik_kilidi)
             st.plotly_chart(fig_vs, width="stretch", config=PLOTLY_CONFIG)
+
+            # ── ALTINS1 & BIST100 Karşılaştırma Grafiği ──────────────
+            if has_data(bist100_series):
+                assert bist100_series is not None
+                st.markdown("---")
+                st.subheader("📊 ALTINS1 — BIST100 Karşılaştırması")
+                st.caption("Sol eksen: ALTINS1 (TL) · Sağ eksen: BIST100 endeks puanı")
+
+                _bist_common = a1.index.intersection(bist100_series.index)
+                if len(_bist_common) > 5:
+                    _a1_b = a1.loc[_bist_common]
+                    _bist_b = bist100_series.loc[_bist_common]
+
+                    _fig_cmp = make_subplots(specs=[[{"secondary_y": True}]])
+                    _fig_cmp.add_trace(
+                        go.Scatter(
+                            x=_a1_b.index, y=_a1_b.values,
+                            mode="lines", name="ALTINS1",
+                            line=dict(color="#42a5f5", width=2),
+                            hovertemplate="<b>ALTINS1</b>: ₺%{y:,.2f}<extra></extra>",
+                        ),
+                        secondary_y=False,
+                    )
+                    _fig_cmp.add_trace(
+                        go.Scatter(
+                            x=_bist_b.index, y=_bist_b.values,
+                            mode="lines", name="BIST100",
+                            line=dict(color="#ffb300", width=2),
+                            hovertemplate="<b>BIST100</b>: %{y:,.0f}<extra></extra>",
+                        ),
+                        secondary_y=True,
+                    )
+                    _fig_cmp.update_layout(
+                        template="plotly_dark",
+                        height=ctx.chart_height,
+                        hovermode="x unified",
+                        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
+                        margin=dict(l=10, r=10, t=30, b=10),
+                    )
+                    _fig_cmp.update_yaxes(title_text="ALTINS1 (₺)", secondary_y=False, tickprefix="₺")
+                    _fig_cmp.update_yaxes(title_text="BIST100", secondary_y=True, showgrid=False)
+                    apply_chart_font(_fig_cmp, ctx.font_size, ctx.chart_height, ctx.grafik_kilidi)
+                    st.plotly_chart(_fig_cmp, width="stretch", config=PLOTLY_CONFIG)
+                else:
+                    st.info("ALTINS1 ve BIST100 için ortak tarih verisi yetersiz.")
         else:
             st.warning("ALTINS1 ve gram altın TL tarih aralıkları örtüşmüyor.")
     elif has_data(altins1_hist_series):

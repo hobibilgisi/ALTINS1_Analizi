@@ -12,7 +12,7 @@ from typing import Dict, List
 # PATCH: Hata düzeltme
 # BUILD: Her değişiklik için artan 4 basamaklı sayaç (0001, 0002, ...)
 APP_VERSION = "4.5.0"
-APP_BUILD = "0054"
+APP_BUILD = "0055"
 APP_VERSION_FULL = f"{APP_VERSION}.{APP_BUILD}"
 APP_VERSION_DATE = "2026-04-21"
 APP_VERSION_NOTES = [
@@ -162,7 +162,7 @@ RESERVE_SOURCES = {
 class AppConfig:
     """Genel uygulama ayarları."""
     page_title: str = "ALTINS1 Analiz"
-    page_icon: str = "static/icon-192.png"
+    page_icon: str = "static/logo.png"
     refresh_interval_sec: int = 60       # Veri yenileme aralığı (saniye)
     history_days: int = 365              # Tarihsel veri çekme süresi (gün)
     cache_ttl_sec: int = 120             # Önbellek süresi (saniye)

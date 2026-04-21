@@ -38,7 +38,10 @@ from app.config import (
 )
 from app.data_fetcher import is_bist_open
 from app.market_data import fetch_market_data
-from app.signal_engine import evaluate_signal, generate_signal_message, SignalType
+from app.signal_engine import (
+    evaluate_signal, generate_signal_message, SignalType,
+    evaluate_volume_signal, evaluate_bist100_signal,
+)
 from app.news_fetcher import get_daily_and_weekly_news
 from app.email_notifier import send_daily_signal_email
 from app.tabs import TabContext
@@ -74,7 +77,7 @@ st.set_page_config(
 # ── PWA Desteği (Ana Ekrana Ekleme) ────────────────────────────
 st.markdown("""
 <link rel="manifest" href="./static/manifest.json">
-<link rel="apple-touch-icon" href="./static/icon-192.png">
+<link rel="apple-touch-icon" href="./static/logo.png">
 <link rel="icon" type="image/x-icon" href="./static/favicon.ico">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -190,21 +193,32 @@ st.markdown(f"""
     }}
     .stMainBlockContainer {{ max-width: 100% !important; }}
 
-    section[data-testid="stSidebar"] .stMetricValue {{
-        font-size: clamp(10px, 2vw, 22px) !important;
-        font-weight: 600 !important;
-        min-width: 0 !important; line-height: 1.1 !important;
-        word-break: break-word !important; overflow: visible !important;
-        text-overflow: unset !important; white-space: normal !important;
-        flex-shrink: 1 !important;
+    /* Sidebar metric — tüm olası selector'lar */
+    section[data-testid="stSidebar"] [data-testid="stMetric"],
+    section[data-testid="stSidebar"] [data-testid="metric-container"] {{
+        min-width: 0 !important;
+        overflow: visible !important;
+        word-break: break-word !important;
     }}
-    section[data-testid="stSidebar"] .stMetricLabel {{
-        font-size: clamp(9px, 1.7vw, 15px) !important;
+    section[data-testid="stSidebar"] [data-testid="stMetricValue"],
+    section[data-testid="stSidebar"] .stMetricValue,
+    section[data-testid="stSidebar"] div[class*="metric"] > div:first-child {{
+        font-size: clamp(11px, 1.8vw, 20px) !important;
+        font-weight: 600 !important;
+        min-width: 0 !important; line-height: 1.2 !important;
+        word-break: break-all !important; overflow: visible !important;
+        text-overflow: clip !important; white-space: normal !important;
+        flex-shrink: 1 !important; max-width: 100% !important;
+    }}
+    section[data-testid="stSidebar"] [data-testid="stMetricLabel"],
+    section[data-testid="stSidebar"] .stMetricLabel,
+    section[data-testid="stSidebar"] div[class*="metric"] > label {{
+        font-size: clamp(9px, 1.4vw, 13px) !important;
         font-weight: 400 !important;
-        min-width: 0 !important; line-height: 1.1 !important;
+        min-width: 0 !important; line-height: 1.2 !important;
         word-break: break-word !important; overflow: visible !important;
-        text-overflow: unset !important; white-space: normal !important;
-        flex-shrink: 1 !important;
+        text-overflow: clip !important; white-space: normal !important;
+        flex-shrink: 1 !important; max-width: 100% !important;
     }}
 
     /* ── Genel metin ── */
@@ -316,7 +330,7 @@ def load_news_split():
 
 
 # ── Hero Başlık ────────────────────────────────────────────────
-_logo_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "icon-512.png")
+_logo_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "logo.png")
 with open(_logo_path, "rb") as _lf:
     _logo_b64 = base64.b64encode(_lf.read()).decode()
 
@@ -464,11 +478,34 @@ with _piyasa_container:
             f'{signal_msg}</div>',
             unsafe_allow_html=True,
         )
-        # Makas metrikleri (tek satır, 3 sütun)
-        _sc1, _sc2, _sc3 = st.columns(3)
+        # Makas metrikleri — 2 sütun üst + 1 sütun alt
+        _sc1, _sc2 = st.columns(2)
         _sc1.metric("ALTINS1", f"₺{altins1_fiyat:,.2f}")
         _sc2.metric("%1 Gr Altın", f"₺{beklenen:,.2f}")
+        _sc3, _ = st.columns(2)
         _sc3.metric("Makas", f"%{makas_pct:,.1f}", delta=f"{makas_pct:+.1f}%")
+
+        # ── Hacim Dikkat Sinyali ──────────────────────────────
+        from app.data_fetcher import fetch_volume_avg_yf
+        _avg_vol = fetch_volume_avg_yf(30)
+        _vol_sig = evaluate_volume_signal(_current.hacim_lot, _avg_vol)
+        st.markdown(
+            f'<div style="padding:9px 12px; border-radius:8px; border-left:4px solid {_vol_sig.color}; '
+            f'background:rgba(0,0,0,0.25); color:#eceff1; '
+            f'font-size:{max(_font_size - 3, 11)}px; margin:6px 0 4px 0; white-space:pre-wrap;">'
+            f'<b>📦 Hacim Sinyali</b><br>{_vol_sig.message}</div>',
+            unsafe_allow_html=True,
+        )
+
+        # ── BIST100 Korelasyon Sinyali ────────────────────────
+        _bist_sig = evaluate_bist100_signal(_series.altins1, _series.bist100)
+        st.markdown(
+            f'<div style="padding:9px 12px; border-radius:8px; border-left:4px solid {_bist_sig.color}; '
+            f'background:rgba(0,0,0,0.25); color:#eceff1; '
+            f'font-size:{max(_font_size - 3, 11)}px; margin:4px 0 6px 0; white-space:pre-wrap;">'
+            f'<b>📊 BIST100 Korelasyon</b><br>{_bist_sig.message}</div>',
+            unsafe_allow_html=True,
+        )
 
         st.markdown("---")
         st.subheader("💰 Piyasa Verileri")
@@ -491,8 +528,6 @@ with _piyasa_container:
 
         # Hacim — ALTINS1 günlük + 30 günlük ortalama yan yana
         if _current.hacim_lot is not None:
-            from app.data_fetcher import fetch_volume_avg_yf
-            _avg_vol = fetch_volume_avg_yf(30)
             st.markdown("**📦 ALTINS1 Hacim (Lot)**")
             _hv1, _hv2 = st.columns(2)
             _hv1.metric("Günlük", f"{_current.hacim_lot:,.0f}")

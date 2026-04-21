@@ -309,7 +309,7 @@ def load_news_split():
 
 
 # ── Hero Başlık ────────────────────────────────────────────────
-_logo_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "altins1_logo_transparent.webp")
+_logo_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "icon-512.png")
 with open(_logo_path, "rb") as _lf:
     _logo_b64 = base64.b64encode(_lf.read()).decode()
 
@@ -325,7 +325,7 @@ st.markdown(f"""
     gap: 20px;
 ">
     <div style="flex-shrink:0;">
-        <img src="data:image/webp;base64,{_logo_b64}"
+        <img src="data:image/png;base64,{_logo_b64}"
              style="width:72px; height:72px; object-fit:contain;
                     filter: drop-shadow(0 0 12px rgba(255,167,38,0.5));" />
     </div>

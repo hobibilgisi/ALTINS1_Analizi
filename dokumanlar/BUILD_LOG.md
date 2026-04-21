@@ -53,3 +53,4 @@ Format: `BUILD | TARİH | VERSİYON | AÇIKLAMA | GIT HASH`
 | 0044 | 2026-04-20 | 4.5.0 | 2 dosya değişikliği | 9b86a3e |
 | 0048 | 2026-04-21 | 4.5.0 | 5 dosya değişikliği | 9b86a3e |
 | 0049 | 2026-04-21 | 4.5.0 | 6 dosya değişikliği | 9b86a3e |
+| 0050 | 2026-04-21 | 4.5.0 | 1 dosya değişikliği | dd44230 |

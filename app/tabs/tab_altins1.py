@@ -126,7 +126,7 @@ def render(ctx: "TabContext") -> None:
                         go.Scatter(
                             x=_bist_b.index, y=_bist_b.values,
                             mode="lines", name="BIST100",
-                            line=dict(color="#ffb300", width=2),
+                            line=dict(color="#ef5350", width=2),
                             hovertemplate="<b>BIST100</b>: %{y:,.0f}<extra></extra>",
                         ),
                         secondary_y=True,

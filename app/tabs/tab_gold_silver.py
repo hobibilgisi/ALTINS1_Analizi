@@ -16,6 +16,11 @@ if TYPE_CHECKING:
 
 def render(ctx: "TabContext") -> None:
     """Altın/Gümüş karşılaştırma grafiğini çizer."""
+    st.caption(
+        "ℹ️ Ons altın ve ons gümüş fiyatlarını TL veya USD bazında karşılaştırır. "
+        "Altın/gümüş oranının tarihsel eğilimi, iki metal arasındaki göreli değerlemeyi "
+        "ve portföy çeşitlendirme fırsatlarını değerlendirmede referans olarak kullanılabilir."
+    )
     ons_usd_hist_series = ctx.series.ons_usd
     ons_silver_usd_hist_series = ctx.series.ons_silver_usd
     gram_gold_hist_series = ctx.series.gram_gold_tl

@@ -22,6 +22,11 @@ from app.ui_helpers import PLOTLY_CONFIG
 
 def render(grafik_kilidi: bool) -> None:
     """Merkez bankası altın rezerv panelini gösterir."""
+    st.caption(
+        "ℹ️ WGC, IMF IFS ve Wikipedia kaynaklarından derlenen merkez bankası altın rezervlerinin "
+        "tarihsel değişim grafiği ve sinyal paneli. Büyük merkez bankalarının alım/satım eğilimleri "
+        "uzun vadeli altın fiyat trendleri için önemli bir gösterge niteliği taşır."
+    )
     st.subheader("🏦 Merkez Bankası Altın Rezervleri")
     st.caption("Kaynak: WGC/IMF IFS tarihsel veri (2018+) + Wikipedia güncel veri")
 

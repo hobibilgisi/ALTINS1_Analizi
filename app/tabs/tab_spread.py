@@ -14,6 +14,11 @@ if TYPE_CHECKING:
 
 def render(ctx: "TabContext") -> None:
     """Makas grafiğini ve istatistikleri gösterir."""
+    st.caption(
+        "ℹ️ ALTINS1 / (%1 Gram Altın) oranının tarihsel seyrini ve istatistiklerini gösterir. "
+        "Oran tarihsel ortalamanın altına düştüğünde potansiyel alım bölgesine, "
+        "ortalamanın belirgin üstüne çıktığında ise satım bölgesine işaret edebilir."
+    )
     spread_hist = ctx.spread_hist
 
     if spread_hist is not None and len(spread_hist) > 0:

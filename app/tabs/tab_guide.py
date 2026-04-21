@@ -5,6 +5,23 @@ import streamlit as st
 
 def render() -> None:
     """Bilgi rehberi sayfasını gösterir."""
+    st.markdown("""
+<div style="
+    background: rgba(255,167,38,0.08);
+    border-left: 4px solid #ffa726;
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px;
+    margin-bottom: 12px;
+    font-family: monospace;
+    font-size: 14px;
+    color: #ffe082;
+    line-height: 1.8;
+">
+    <b>ALTINS1</b> = 0.01 gram altın sertifikası (BIST)<br>
+    <b>Beklenen Fiyat</b> = Gram Altın TL × 0.01<br>
+    <b>Makas (%)</b> = (Gerçek ALTINS1 − Beklenen) / Beklenen × 100
+</div>
+""", unsafe_allow_html=True)
     st.subheader("📖 Bilgi Rehberi")
     st.caption("Altın piyasası, ALTINS1 sertifikası ve analiz yöntemleri hakkında kapsamlı rehber")
 

@@ -13,6 +13,11 @@ if TYPE_CHECKING:
 
 def render(ctx: "TabContext") -> None:
     """Ons altın fiyat ve hacim grafiğini çizer."""
+    st.caption(
+        "ℹ️ XAU/USD ons altın fiyatının OHLCV mum grafiğini gösterir. "
+        "Küresel altın fiyat hareketlerini izlemek için kullanılır; "
+        "ALTINS1 fiyatı dolaylı olarak ons altın × dolar/TL kuru üzerinden şekillenir."
+    )
     history = ctx.history_raw
 
     if history.get("ons_altin_usd") is not None:

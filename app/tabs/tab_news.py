@@ -9,6 +9,10 @@ from app.news_fetcher import NewsItem
 
 def render(daily_news: List[NewsItem], weekly_news: List[NewsItem]) -> None:
     """Günlük ve haftalık haberleri gösterir."""
+    st.caption(
+        "ℹ️ Altın, döviz, merkez bankası ve jeopolitik gelişmelere dair RSS kaynaklarından "
+        "derlenen haber akışı. Günlük (son 24 saat) ve haftalık olmak üzere iki bölüme ayrılmıştır."
+    )
     st.subheader("📰 Haberler")
 
     # Günlük haberler (son 24 saat)

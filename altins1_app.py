@@ -142,26 +142,8 @@ if not st.session_state.splash_shown:
         st.stop()
 
 # ── Sidebar ────────────────────────────────────────────────────
+_now_tr = datetime.now(_TZ_ISTANBUL)
 with st.sidebar:
-    st.image("static/icon-128.png", width=80)
-    st.title("ALTINS1 Analiz")
-    st.markdown("---")
-
-    if st.button("🔄 Verileri Yenile", width="stretch"):
-        st.cache_data.clear()
-        st.rerun()
-    _now_tr = datetime.now(_TZ_ISTANBUL)
-    st.caption(f"Son güncelleme: {_now_tr.strftime('%H:%M:%S')}")
-
-    # ── Seans açıkken otomatik yenileme (her 2 dakikada bir) ──
-    _auto_refresh_enabled = st.toggle(
-        "⏱️ Otomatik Yenile (2 dk)", value=True, key="auto_refresh",
-        help="Seans açıkken sayfa her 2 dakikada otomatik güncellenir.",
-    )
-    if _auto_refresh_enabled and is_bist_open():
-        st_autorefresh(interval=2 * 60 * 1000, key="bist_autorefresh")
-
-    st.markdown("---")
     # Piyasa Verileri için yer ayır — veriler yüklendikten sonra doldurulacak
     _piyasa_container = st.container()
 
@@ -170,10 +152,10 @@ with st.sidebar:
     _font_size = st.slider("Metin boyutu (px)", 14, 28, 21, 1, key="font_size")
     st.subheader("📏 Grafik Yüksekliği")
     _chart_height = st.slider("Yükseklik (px)", 400, 1200, 750, 50, key="chart_height")
-    st.subheader("� Grafik Etkileşimi")
+    st.subheader("🖱️ Grafik Etkileşimi")
     _grafik_kilidi = st.toggle("Grafik Kilidi (mobil için önerilir)", value=True, key="grafik_kilidi",
                                 help="Açıkken grafiklere dokunma yakınlaştırma yapmaz. Kaydırma ve değer okuma rahatlaşır.")
-    st.subheader("�📅 Tarihsel Veri")
+    st.subheader("📅 Tarihsel Veri")
     period = st.selectbox("Periyot", ["1mo", "3mo", "6mo", "1y", "2y"], index=3)
 
 # ── Dinamik yazı boyutu CSS ────────────────────────────────────
@@ -327,25 +309,29 @@ def load_news_split():
 
 
 # ── Hero Başlık ────────────────────────────────────────────────
-st.markdown("""
+_logo_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "altins1_logo_transparent.webp")
+with open(_logo_path, "rb") as _lf:
+    _logo_b64 = base64.b64encode(_lf.read()).decode()
+
+st.markdown(f"""
 <div style="
     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
     border: 1px solid rgba(255,167,38,0.25);
     border-radius: 16px;
-    padding: 28px 32px 22px 32px;
+    padding: 20px 28px 18px 28px;
     margin-bottom: 8px;
     display: flex;
     align-items: center;
-    gap: 24px;
+    gap: 20px;
 ">
     <div style="flex-shrink:0;">
-        <img src="./static/icon-128.png"
-             style="width:64px; height:64px; border-radius:12px;
-                    box-shadow: 0 0 20px rgba(255,167,38,0.4);" />
+        <img src="data:image/webp;base64,{_logo_b64}"
+             style="width:72px; height:72px; object-fit:contain;
+                    filter: drop-shadow(0 0 12px rgba(255,167,38,0.5));" />
     </div>
     <div>
         <div style="
-            font-size: clamp(20px, 3vw, 32px);
+            font-size: clamp(22px, 3vw, 34px);
             font-weight: 700;
             letter-spacing: -0.5px;
             line-height: 1.15;
@@ -357,17 +343,10 @@ st.markdown("""
         <div style="
             font-size: clamp(12px, 1.6vw, 16px);
             color: #b0bec5;
-            margin-top: 4px;
+            margin-top: 5px;
             font-weight: 400;
             letter-spacing: 0.2px;
         ">Altın Sertifikası Takip &amp; Sinyal Sistemi</div>
-        <div style="
-            font-size: clamp(10px, 1.2vw, 13px);
-            color: rgba(255,167,38,0.7);
-            margin-top: 6px;
-            font-family: monospace;
-            letter-spacing: 0.5px;
-        ">ALTINS1 = 0.01 gr altın sertifikası &nbsp;·&nbsp; Beklenen = Gram Altın TL × 0.01</div>
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -409,7 +388,7 @@ avg_spread = float(spread_hist.mean()) if spread_hist is not None and len(spread
 buy_th = round(avg_spread, 1)
 strong_buy_th = round(avg_spread - 5.0, 1)
 
-# ── Sidebar (alt kısım — sinyal eşikleri) ─────────────────────
+# ── Sidebar (alt kısım — sinyal eşikleri + yenile kontrolleri) ─
 with st.sidebar:
     st.markdown("---")
     st.subheader("⚙️ Sinyal Eşikleri")
@@ -418,6 +397,18 @@ with st.sidebar:
     st.info(f"🟢 Güçlü Alım eşiği (ort. − 5): **%{strong_buy_th}**")
     sell_th = st.slider("Satım eşiği (%)", 20.0, 50.0, 35.0, 1.0)
     strong_sell_th = st.slider("Güçlü Satım eşiği (%)", 30.0, 70.0, 50.0, 1.0)
+
+    st.markdown("---")
+    if st.button("🔄 Verileri Yenile", width="stretch"):
+        st.cache_data.clear()
+        st.rerun()
+    st.caption(f"Son güncelleme: {_now_tr.strftime('%H:%M:%S')}")
+    _auto_refresh_enabled = st.toggle(
+        "⏱️ Otomatik Yenile (2 dk)", value=True, key="auto_refresh",
+        help="Seans açıkken sayfa her 2 dakikada otomatik güncellenir.",
+    )
+    if _auto_refresh_enabled and is_bist_open():
+        st_autorefresh(interval=2 * 60 * 1000, key="bist_autorefresh")
 
 thresholds = SignalThresholds(
     strong_buy=strong_buy_th,
@@ -545,13 +536,13 @@ _tab_ctx = TabContext(
 )
 
 tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
-    "🎯 ALTINS1 Analizi",
-    "📊 S1/Gr Oranı Analizi",
-    "🕯️ Ons Altın (XAU/USD)",
+    "🎯 Analiz",
+    "📊 S1/Gr Oranı",
+    "🕯️ Ons Altın",
     "🥇🥈 Altın vs Gümüş",
     "📰 Haberler",
     "🏦 Merkez Bankaları",
-    "📖 Bilgi Rehberi",
+    "📖 Rehber",
 ])
 
 with tab1:

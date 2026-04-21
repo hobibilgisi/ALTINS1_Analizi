@@ -18,6 +18,11 @@ if TYPE_CHECKING:
 
 def render(ctx: "TabContext") -> None:
     """ALTINS1 Gerçek vs Beklenen karşılaştırma grafiğini çizer."""
+    st.caption(
+        "ℹ️ ALTINS1'in BIST'teki gerçek fiyatını teorik değeriyle (gram altın × 0.01) karşılaştırır. "
+        "İkisi arasındaki fark **makas** olarak adlandırılır — makasın daralması alım fırsatına, "
+        "genişlemesi ise satım bölgesine işaret edebilir."
+    )
     altins1_hist_series = ctx.series.altins1
     gram_gold_hist_series = ctx.series.gram_gold_tl
     beklenen_hist_series = ctx.series.beklenen

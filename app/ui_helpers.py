@@ -108,9 +108,6 @@ def apply_chart_font(
             )
 
     _drag = False if grafik_kilidi else "zoom"
-    # Grafik kilidi açıkken hover kapalı: dokunuşta tooltip grafik görüşünü bloklamaz.
-    # Kapalıyken (masaüstü) normal "x" hover.
-    _hovermode = False if grafik_kilidi else "x"
     fig.update_layout(
         font=dict(size=font_size),
         title_font_size=font_size + 4,
@@ -121,7 +118,7 @@ def apply_chart_font(
         title_xanchor="left",
         title_y=0.96,
         margin=dict(l=5, r=5, t=50, b=60),
-        hovermode=_hovermode,
+        hovermode="x",
         hoverlabel=dict(
             font_size=font_size,
             namelength=-1,

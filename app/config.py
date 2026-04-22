@@ -12,9 +12,9 @@ from typing import Dict, List
 # PATCH: Hata düzeltme
 # BUILD: Her değişiklik için artan 4 basamaklı sayaç (0001, 0002, ...)
 APP_VERSION = "4.5.0"
-APP_BUILD = "0065"
+APP_BUILD = "0067"
 APP_VERSION_FULL = f"{APP_VERSION}.{APP_BUILD}"
-APP_VERSION_DATE = "2026-04-21"
+APP_VERSION_DATE = "2026-04-22"
 APP_VERSION_NOTES = [
     "#0060 — Mobil grafik: kenar bosluk azaltildi, 5-gun uzatma, BIST baslik, hover kilidi",
     "#0058 — Bolum basliklarinda accent cizgi + sidebar metric kart gorunumu",

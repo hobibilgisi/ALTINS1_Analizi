@@ -156,8 +156,14 @@ def apply_chart_font(
         for ann in fig.layout.annotations:
             ann.font = dict(size=font_size)
 
-    # Son günün verisini 5 gün sağa uzat — geniş dokunma alanı oluşturur,
-    # kullanıcı bu boş bölgeye dokunarak son günün değerini kolayca okuyabilir.
+    # Türkçe tarih etiketleri ve customdata'yı GERÇEK veri üzerinde ayarla.
+    # Uzatma bu adımdan SONRA gelir — böylece uzatma noktaları future tarih göstermez.
+    turkce_tarih_ekseni(fig)
+
+    # Son günü 10 takvim günü sağa uzat — geniş dokunma alanı.
+    # Uzatma noktalarının customdata'sı son gerçek tarihle aynı tutulur
+    # (tooltip'te future tarih değil, son gerçek tarih gösterilir).
+    _EXT_DAYS = 10
     _max_date = None
     for _tr in fig.data:
         if _tr.__class__.__name__ != "Scatter":
@@ -168,13 +174,17 @@ def apply_chart_font(
         _last_y = _tr.y[-1] if _tr.y[-1] is not None else None
         if _last_y is None:
             continue
-        _ext_x = [_last_x + pd.Timedelta(days=d) for d in (1, 2, 3, 4, 5)]
+        _last_cd = (list(_tr.customdata)[-1]
+                    if _tr.customdata is not None and len(_tr.customdata) > 0
+                    else None)
+        _ext_x = [_last_x + pd.Timedelta(days=d) for d in range(1, _EXT_DAYS + 1)]
         _tr.x = list(_tr.x) + _ext_x
-        _tr.y = list(_tr.y) + [_last_y] * 5
+        _tr.y = list(_tr.y) + [_last_y] * _EXT_DAYS
+        if _last_cd is not None:
+            _tr.customdata = list(_tr.customdata) + [_last_cd] * _EXT_DAYS
         if _max_date is None or _last_x > _max_date:
             _max_date = _last_x
     if _max_date is not None:
-        fig.update_xaxes(range=[None, _max_date + pd.Timedelta(days=6)])
+        fig.update_xaxes(range=[None, _max_date + pd.Timedelta(days=_EXT_DAYS + 1)])
 
-    turkce_tarih_ekseni(fig)
     return fig

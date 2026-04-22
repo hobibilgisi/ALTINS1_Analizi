@@ -155,9 +155,6 @@ with st.sidebar:
     _font_size = st.slider("Metin boyutu (px)", 14, 28, 21, 1, key="font_size")
     st.subheader("📏 Grafik Yüksekliği")
     _chart_height = st.slider("Yükseklik (px)", 400, 1200, 750, 50, key="chart_height")
-    st.subheader("🖱️ Grafik Etkileşimi")
-    _grafik_kilidi = st.toggle("Grafik Kilidi (mobil için önerilir)", value=True, key="grafik_kilidi",
-                                help="Açıkken grafiklere dokunma yakınlaştırma yapmaz. Kaydırma ve değer okuma rahatlaşır.")
     st.subheader("📅 Tarihsel Veri")
     period = st.selectbox("Periyot", ["1mo", "3mo", "6mo", "1y", "2y"], index=3)
 
@@ -593,6 +590,13 @@ if altins1_fiyat is None or gram_altin_tl is None:
 st.markdown("---")
 st.markdown('<div class="section-header">📈 Grafikler</div>', unsafe_allow_html=True)
 
+_gk_col, _ = st.columns([1, 3])
+_grafik_kilidi = _gk_col.toggle(
+    "🔒 Grafik Kilidi",
+    value=st.session_state.get("grafik_kilidi", True),
+    key="grafik_kilidi",
+    help="Açıkken yakınlaştırma kapalı — mobilde grafik parmakla kaydırılabilir.",
+)
 
 # ── Tab Bağlamı ────────────────────────────────────────────────
 _tab_ctx = TabContext(

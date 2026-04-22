@@ -590,13 +590,8 @@ if altins1_fiyat is None or gram_altin_tl is None:
 st.markdown("---")
 st.markdown('<div class="section-header">📈 Grafikler</div>', unsafe_allow_html=True)
 
-_gk_col, _ = st.columns([1, 3])
-_grafik_kilidi = _gk_col.toggle(
-    "🔒 Grafik Kilidi",
-    value=st.session_state.get("grafik_kilidi", True),
-    key="grafik_kilidi",
-    help="Açıkken yakınlaştırma kapalı — mobilde grafik parmakla kaydırılabilir.",
-)
+# Grafik kilidi değerini session_state'ten oku (toggle aşağıda grafiklerden sonra gösterilir)
+_grafik_kilidi = st.session_state.get("grafik_kilidi", True)
 
 # ── Tab Bağlamı ────────────────────────────────────────────────
 _tab_ctx = TabContext(
@@ -642,6 +637,24 @@ with tab6:
 with tab7:
     tab_guide.render()
 
+# ── Grafik Kilidi (grafiklerin hemen altında, mobil için) ──────
+st.markdown("""
+<div style="background:rgba(255,167,38,0.08); border:1px solid rgba(255,167,38,0.25);
+     border-radius:10px; padding:10px 16px; margin:8px 0 4px 0; display:flex;
+     align-items:center; gap:10px;">
+  <span style="font-size:18px;">🔒</span>
+  <span style="color:#b0bec5; font-size:14px;">
+    <b style="color:#ffa726;">Grafik Kilidi</b> — Açıkken yakınlaştırma kapalı,
+    mobilde grafik parmakla rahatça kaydırılır.
+  </span>
+</div>
+""", unsafe_allow_html=True)
+st.toggle(
+    "🔒 Grafik Kilidi",
+    value=True,
+    key="grafik_kilidi",
+    help="Açıkken dragmode=False — kaydırma ve değer okuma rahatlar.",
+)
 
 # ═══════════════════════════════════════════════════════════════
 # 4) E-POSTA BİLDİRİM
